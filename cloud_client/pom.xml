@@ -33,6 +33,13 @@
             <artifactId>javafx-fxml</artifactId>
             <version>15</version>
         </dependency>
+
+        <dependency>
+            <groupId>gb.cloud</groupId>
+            <artifactId>cloud_common</artifactId>
+            <version>0.1</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>
