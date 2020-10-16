@@ -19,6 +19,10 @@ public class CommandMessage extends AbstractMessage {
         this.user = user;
     }
 
+    public Command getCommand(){
+        return command;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
