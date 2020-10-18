@@ -1,7 +1,8 @@
 package gb.cloud.server;
 
 import gb.cloud.common.CommonSettings;
-import gb.cloud.server.handlers.PrintCommandHandler;
+import gb.cloud.server.handlers.OutboundHandler;
+import gb.cloud.server.handlers.HandshakeHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -24,9 +25,10 @@ public class Server {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel)/* throws Exception*/ {
                             socketChannel.pipeline().addLast(
-                                    new ObjectDecoder(CommonSettings.MAX_NETWORK_OBJECT_SIZE, ClassResolvers.cacheDisabled(null)),
-                                    new ObjectEncoder(),
-                                    new PrintCommandHandler()
+                                    new ObjectDecoder(CommonSettings.MAX_NETWORK_OBJECT_SIZE, ClassResolvers.cacheDisabled(null))
+                                  , new ObjectEncoder()
+                                  , new OutboundHandler()
+                                  , new HandshakeHandler()
                             );
                         }
                     });

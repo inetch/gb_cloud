@@ -9,21 +9,24 @@ import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
+import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.net.Socket;
+import java.net.URL;
+import java.util.ResourceBundle;
 
-public class MainWindow extends Application{
+public class MainWindow extends Application implements Initializable {
     @Override
     public void start(Stage primaryStage) throws Exception {
-        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/MainWindow.fxml"));
+      /*  FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/MainWindow.fxml"));
         Parent root = fxmlLoader.load();
         primaryStage.setTitle("Box Client");
         Scene scene = new Scene(root);
         primaryStage.setScene(scene);
-        primaryStage.show();
+        primaryStage.show();*/
 
         primaryStage.setTitle("Hello world");
 
@@ -56,8 +59,8 @@ public class MainWindow extends Application{
             messageEncoder.writeObject(new CommandMessage(Command.HANDSHAKE));
             messageEncoder.flush();
 
-            ResponseMessage response = (ResponseMessage) messageDecoder.readObject();
-            System.out.println("Server answer: " + response);
+        /*    ResponseMessage response = (ResponseMessage) messageDecoder.readObject();
+            System.out.println("Server answer: " + response);*/
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -66,5 +69,10 @@ public class MainWindow extends Application{
 
     public static void main(String[] args) {
         Application.launch(args);
+    }
+
+    @Override
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+
     }
 }
