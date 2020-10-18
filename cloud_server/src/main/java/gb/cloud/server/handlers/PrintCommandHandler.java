@@ -13,8 +13,8 @@ public class PrintCommandHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext context, Throwable couse) throws Exception {
-        couse.printStackTrace();
+    public void exceptionCaught(ChannelHandlerContext context, Throwable cause) throws Exception {
+        cause.printStackTrace();
         context.close();
     }
 }

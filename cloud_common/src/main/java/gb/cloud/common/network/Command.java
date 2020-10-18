@@ -9,4 +9,5 @@ public enum Command {
   , RENAME_FILE
   , DELETE_FILE
   , PULL_TREE
+  , HANDSHAKE
 }

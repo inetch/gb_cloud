@@ -18,4 +18,12 @@ public class ResponseMessage extends AbstractMessage {
     public void setResult(boolean result) {
         this.result = result;
     }
+
+    @Override
+    public String toString() {
+        return "ResponseMessage{" +
+                "result=" + result +
+                ", lastCommand=" + lastCommand +
+                '}';
+    }
 }
