@@ -1,12 +1,11 @@
 package gb.cloud.server;
 
-import gb.cloud.common.Settings;
-import gb.cloud.server.handlers.AuthHandler;
-import gb.cloud.server.handlers.PrintCommandHandler;
+import gb.cloud.common.CommonSettings;
+import gb.cloud.server.handlers.OutboundHandler;
+import gb.cloud.server.handlers.HandshakeHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -24,15 +23,16 @@ public class Server {
             b.group(mainGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
-                        protected void initChannel(SocketChannel socketChannel) throws Exception {
+                        protected void initChannel(SocketChannel socketChannel)/* throws Exception*/ {
                             socketChannel.pipeline().addLast(
-                                    new ObjectDecoder(Settings.maxNetworkObjectSize, ClassResolvers.cacheDisabled(null)),
-                                    new ObjectEncoder(),
-                                    new PrintCommandHandler()
+                                    new ObjectDecoder(CommonSettings.MAX_NETWORK_OBJECT_SIZE, ClassResolvers.cacheDisabled(null))
+                                  , new ObjectEncoder()
+                                  , new OutboundHandler()
+                                  , new HandshakeHandler()
                             );
                         }
                     });
-            ChannelFuture future = b.bind(Settings.serverPort).sync();
+            ChannelFuture future = b.bind(CommonSettings.SERVER_PORT).sync();
             future.channel().closeFuture().sync();
         } finally {
             mainGroup.shutdownGracefully();
