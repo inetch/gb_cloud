@@ -5,17 +5,17 @@ import java.util.Objects;
 
 public class User {
     private String login;
-    private byte[] passwordHash;
+    private String passwordHash;
 
     public String getLogin() {
         return login;
     }
 
-    public byte[] getPasswordHash() {
+    public String getPasswordHash() {
         return passwordHash;
     }
 
-    public User(String login, byte[] passwordHash) {
+    public User(String login, String passwordHash) {
         this.login = login;
         this.passwordHash = passwordHash;
     }
@@ -26,13 +26,13 @@ public class User {
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
         return login.equals(user.login) &&
-                Arrays.equals(passwordHash, user.passwordHash);
+                passwordHash.equals(passwordHash);
     }
 
     @Override
     public int hashCode() {
         int result = Objects.hash(login);
-        result = 31 * result + Arrays.hashCode(passwordHash);
+        result = 31 * result + Objects.hash(passwordHash);
         return result;
     }
 }

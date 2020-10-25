@@ -5,12 +5,18 @@ import javax.crypto.spec.PBEKeySpec;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
+import java.util.Arrays;
 
 public class Password {
-    private static byte[] static_salt = {12, 56, 89, 65, 124, 56, 55, 10, 02, 89, 41};
+    private final static byte[] static_salt = {12, 56, 89, 65, 124, 56, 55, 10, 02, 89, 41};
 
-    public static byte[] getHash(String pass) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        return getHash(pass, static_salt);
+    public static String getHash(String pass) {
+        try {
+            return new String(getHash(pass, static_salt));
+        }catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            System.out.println(e);
+        }
+        return pass;
     }
 
     public static byte[] getHash(String pass, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException {

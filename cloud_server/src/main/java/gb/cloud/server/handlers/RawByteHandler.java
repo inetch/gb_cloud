@@ -1,11 +1,17 @@
 package gb.cloud.server.handlers;
 
+import gb.cloud.common.network.Command;
+import gb.cloud.common.network.CommandMessage;
 import gb.cloud.server.HeaderProcessor;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+
+import java.io.BufferedOutputStream;
+import java.io.FileOutputStream;
+import java.util.Arrays;
 
 public class RawByteHandler  extends ChannelInboundHandlerAdapter {
     private enum State {
@@ -19,6 +25,11 @@ public class RawByteHandler  extends ChannelInboundHandlerAdapter {
     private int bracketCounter  = 0;
     private StringBuffer headerBuffer = new StringBuffer();
     private JSONObject header;
+
+    private BufferedOutputStream out;
+    private long receivedFileLength;
+    private long fileLength;
+
     JSONParser parser = new JSONParser();
 
     @Override
@@ -59,16 +70,39 @@ public class RawByteHandler  extends ChannelInboundHandlerAdapter {
 
             if(currentState == State.HEADER_GOT){
                 System.out.println("going to process header");
-                boolean res = HeaderProcessor.processHeader(header);
-                if (res){
-                    System.out.println("Header successfully processed");
-                }else{
-                    System.out.println("Header error");
+                CommandMessage commandMessage = HeaderProcessor.processHeader(header);
+                System.out.println(commandMessage.getCommand());
+                /*System.out.println(commandMessage.getUser().getLogin());
+                System.out.println(commandMessage.getUser().getPasswordHash());*/
+                if (commandMessage.getCommand() == Command.SEND_FILE){
+                    System.out.println(commandMessage.getFilePath());
+                    System.out.println(commandMessage.getFileSize());
+                    currentState = State.READ_FILE;
+                    receivedFileLength = 0L;
+                    fileLength = commandMessage.getFileSize();
+                    out = new BufferedOutputStream(new FileOutputStream(commandMessage.getFilePath().toFile()));
+                }
+            }
+
+            if(currentState == State.READ_FILE){
+                while (buf.readableBytes() > 0 && receivedFileLength < fileLength){
+                    out.write(buf.readByte());
+                    receivedFileLength++;
                 }
 
+                if(receivedFileLength == fileLength){
+                    currentState = State.IDLE;
+                    System.out.println("File received!");
+                    out.close();
+                }
             }
         }
+        if (buf.readableBytes() == 0) {
+            buf.release();
+        }
     }
+
+
 }
 
 /*

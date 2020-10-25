@@ -19,6 +19,7 @@ import org.json.simple.JSONObject;
 
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.ResourceBundle;
 import java.util.concurrent.CountDownLatch;
 
@@ -83,7 +84,17 @@ public class MainWindow extends Application implements Initializable {
         networkStarter.await();
 
         JSONObject header = new JSONObject();
-        header.put(CommonSettings.J_COMMAND, CommonSettings.C_AUTH);
+
+        Sender.sendFile(header, Paths.get("send.me"), Network.getInstance().getCurrentChannel(), future -> {
+            if (!future.isSuccess()) {
+                future.cause().printStackTrace();
+            }else{
+                System.out.println("Header sent!");
+            }
+            Network.getInstance().stop();
+        });
+
+     /*   header.put(CommonSettings.J_COMMAND, Command.LOGIN.toString());
         header.put(CommonSettings.J_USERNAME, "user-figuser");
         header.put(CommonSettings.J_PASSWORD, "password-figasword");
 
@@ -94,7 +105,7 @@ public class MainWindow extends Application implements Initializable {
                 System.out.println("Header sent!");
             }
             Network.getInstance().stop();
-        });
+        });*/
 
         /*obj.put("name", "foo");
         obj.put("num", new Integer(100));

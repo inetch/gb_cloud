@@ -1,5 +1,7 @@
 package gb.cloud.client.network;
 
+import gb.cloud.common.CommonSettings;
+import gb.cloud.common.network.Command;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.*;
@@ -15,20 +17,34 @@ public class Sender {
 
         ByteBuf buf = ByteBufAllocator.DEFAULT.directBuffer(bytes.length);
         buf.writeBytes(bytes);
-        ChannelFuture transferOperationFuture = channel.writeAndFlush(buf);
 
         if (finishListener != null) {
+            ChannelFuture transferOperationFuture = channel.writeAndFlush(buf);
             transferOperationFuture.addListener(finishListener);
+        } else {
+            channel.write(buf);
         }
     }
 
-    public static void sendFile(Path path, Channel channel, ChannelFutureListener finishListener) throws IOException {
-        FileRegion region = new DefaultFileRegion(path.toFile(), 0, Files.size(path));
+    public static void sendFile(JSONObject header, Path path, Channel channel, ChannelFutureListener finishListener) throws IOException {
+        header.put(CommonSettings.J_COMMAND, Command.SEND_FILE.toString());
+
+        long fileSize = Files.size(path);
+
+        JSONObject fileEntry = new JSONObject();
+        fileEntry.put(CommonSettings.J_FILENAME, path.getFileName().toString());
+        fileEntry.put(CommonSettings.J_SIZE, fileSize);
+        header.put(CommonSettings.J_FILE, fileEntry);
+
+        sendHeader(header, channel, null);
+
+        FileRegion region = new DefaultFileRegion(path.toFile(), 0, fileSize);
 
         ChannelFuture transferOperationFuture = channel.writeAndFlush(region);
         if (finishListener != null) {
             transferOperationFuture.addListener(finishListener);
         }
     }
+
 }
 

@@ -15,11 +15,4 @@ public class CommonSettings {
     public static final String J_SIZE = "size";
     public static final String J_FOLDER = "folder";
 
-    //commands
-    public static final String C_AUTH = "auth";
-    public static final String C_REG = "register";
-    public static final String C_FILE = "file";
-    public static final String C_TREE_REQ = "tree-request";
-    public static final String C_FILE_REQ = "file-request";
-
 }
