@@ -3,6 +3,7 @@ package gb.cloud.server;
 import gb.cloud.common.CommonSettings;
 import gb.cloud.server.handlers.OutboundHandler;
 import gb.cloud.server.handlers.HandshakeHandler;
+import gb.cloud.server.handlers.RawByteHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -23,12 +24,15 @@ public class Server {
             b.group(mainGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
+                        private ClientConnection connection = new ClientConnection();
+
                         protected void initChannel(SocketChannel socketChannel)/* throws Exception*/ {
                             socketChannel.pipeline().addLast(
-                                    new ObjectDecoder(CommonSettings.MAX_NETWORK_OBJECT_SIZE, ClassResolvers.cacheDisabled(null))
+                              /*      new ObjectDecoder(CommonSettings.MAX_NETWORK_OBJECT_SIZE, ClassResolvers.cacheDisabled(null))
                                   , new ObjectEncoder()
                                   , new OutboundHandler()
-                                  , new HandshakeHandler()
+                                  , new HandshakeHandler(connection)*/
+                                    new RawByteHandler()
                             );
                         }
                     });
