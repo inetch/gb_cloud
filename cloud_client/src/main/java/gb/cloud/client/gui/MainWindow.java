@@ -1,23 +1,14 @@
 package gb.cloud.client.gui;
 
-import gb.cloud.client.ClientSettings;
 import gb.cloud.client.network.Network;
-import gb.cloud.client.network.Sender;
+import gb.cloud.common.network.Sender;
 import gb.cloud.common.CommonSettings;
 import gb.cloud.common.network.Command;
-import gb.cloud.common.network.CommandMessage;
-import gb.cloud.common.network.ResponseMessage;
-import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
-import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
 import org.json.simple.JSONObject;
 
-import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.ResourceBundle;
@@ -78,20 +69,46 @@ public class MainWindow extends Application implements Initializable {
         }
 */
 
-        CountDownLatch networkStarter = new CountDownLatch(1);
-        new Thread(() -> Network.getInstance().start(networkStarter)).start();
-
-        networkStarter.await();
-
         JSONObject header = new JSONObject();
 
-        Sender.sendFile(header, Paths.get("send.me"), Network.getInstance().getCurrentChannel(), future -> {
+     /*   Sender.sendFile(header, Paths.get("hw2.png"), Network.getInstance().getCurrentChannel(), future -> {
             if (!future.isSuccess()) {
                 future.cause().printStackTrace();
             }else{
                 System.out.println("Header sent!");
             }
             Network.getInstance().stop();
+        });*/
+
+        /*
+         JSONObject fileEntry = new JSONObject();
+        fileEntry.put(CommonSettings.J_FILENAME, path.getFileName().toString());
+        fileEntry.put(CommonSettings.J_SIZE, fileSize);
+        header.put(CommonSettings.J_FILE, fileEntry);
+        * */
+
+        /*
+        header.put(CommonSettings.J_COMMAND, Command.PULL_FILE.toString());
+
+        JSONObject fileEntry = new JSONObject();
+        fileEntry.put(CommonSettings.J_FILENAME, "send.me");
+        header.put(CommonSettings.J_FILE, fileEntry);
+
+        Sender.sendHeader(header, Network.getInstance().getCurrentChannel(), future -> {
+            if (!future.isSuccess()) {
+                future.cause().printStackTrace();
+            }else{
+                System.out.println("Pull file");
+            }
+        });*/
+
+        header.put(CommonSettings.J_COMMAND, Command.PULL_TREE.toString());
+        Sender.sendHeader(header, Network.getInstance().getCurrentChannel(), future -> {
+            if (!future.isSuccess()) {
+                future.cause().printStackTrace();
+            }else{
+                System.out.println("Pull file");
+            }
         });
 
      /*   header.put(CommonSettings.J_COMMAND, Command.LOGIN.toString());
@@ -137,6 +154,15 @@ public class MainWindow extends Application implements Initializable {
     }
 
     public static void main(String[] args) {
+        CountDownLatch networkStarter = new CountDownLatch(1);
+        new Thread(() -> Network.getInstance().start(networkStarter)).start();
+
+        try {
+            networkStarter.await();
+        }catch(InterruptedException ie){
+            ie.printStackTrace();
+        }
+
         Application.launch(args);
     }
 

@@ -2,6 +2,7 @@ package gb.cloud.client.network;
 
 import gb.cloud.client.ClientSettings;
 import gb.cloud.common.CommonSettings;
+import gb.cloud.common.network.TwoWayHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -39,7 +40,9 @@ public class Network {
                     .remoteAddress(new InetSocketAddress(ClientSettings.SERVER_ADDRESS, CommonSettings.SERVER_PORT))
                     .handler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
-                            socketChannel.pipeline().addLast();
+                            socketChannel.pipeline().addLast(
+                                    new TwoWayHandler(ClientSettings.FILE_DIRECTORY)
+                            );
                             currentChannel = socketChannel;
                         }
                     });

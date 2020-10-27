@@ -1,5 +1,7 @@
 package gb.cloud.common.network;
 
+import org.json.simple.JSONObject;
+
 import java.nio.file.Path;
 import java.util.Objects;
 
@@ -8,6 +10,16 @@ public class CommandMessage extends AbstractMessage {
     private User user;
     private Path filePath;
     private long fileSize;
+
+    public JSONObject getFileTree() {
+        return fileTree;
+    }
+
+    public void setFileTree(JSONObject fileTree) {
+        this.fileTree = fileTree;
+    }
+
+    private JSONObject fileTree;
 
     public long getFileSize() {
         return fileSize;

@@ -10,4 +10,5 @@ public enum Command {
   , DELETE_FILE
   , PULL_TREE
   , HANDSHAKE
+  , SEND_TREE
 }
