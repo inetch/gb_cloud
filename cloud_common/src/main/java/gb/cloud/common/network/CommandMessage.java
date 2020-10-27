@@ -1,11 +1,29 @@
 package gb.cloud.common.network;
 
-import java.io.Serializable;
+import java.nio.file.Path;
 import java.util.Objects;
 
 public class CommandMessage extends AbstractMessage {
-    private Command command;
+    private final Command command;
     private User user;
+    private Path filePath;
+    private long fileSize;
+
+    public long getFileSize() {
+        return fileSize;
+    }
+
+    public void setFileSize(long fileSize) {
+        this.fileSize = fileSize;
+    }
+
+    public Path getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(Path filePath) {
+        this.filePath = filePath;
+    }
 
     public CommandMessage(Command command){
         this.command = command;

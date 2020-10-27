@@ -1,6 +1,8 @@
 package gb.cloud.client.gui;
 
 import gb.cloud.client.ClientSettings;
+import gb.cloud.client.network.Network;
+import gb.cloud.client.network.Sender;
 import gb.cloud.common.CommonSettings;
 import gb.cloud.common.network.Command;
 import gb.cloud.common.network.CommandMessage;
@@ -13,10 +15,13 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import org.json.simple.JSONObject;
 
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.ResourceBundle;
+import java.util.concurrent.CountDownLatch;
 
 public class MainWindow extends Application implements Initializable {
     @Override
@@ -50,6 +55,7 @@ public class MainWindow extends Application implements Initializable {
         }
         * */
 
+        /*
         try(Socket socket = new Socket(ClientSettings.SERVER_ADDRESS, CommonSettings.SERVER_PORT);
             ObjectEncoderOutputStream messageEncoder = new ObjectEncoderOutputStream(socket.getOutputStream());
             ObjectDecoderInputStream messageDecoder = new ObjectDecoderInputStream(socket.getInputStream(), CommonSettings.MAX_NETWORK_OBJECT_SIZE);
@@ -59,12 +65,75 @@ public class MainWindow extends Application implements Initializable {
             messageEncoder.writeObject(new CommandMessage(Command.HANDSHAKE));
             messageEncoder.flush();
 
-        /*    ResponseMessage response = (ResponseMessage) messageDecoder.readObject();
-            System.out.println("Server answer: " + response);*/
+            ResponseMessage response = (ResponseMessage) messageDecoder.readObject();
+            System.out.println("Server answer: " + response);
+
+            messageEncoder.writeObject(new CommandMessage(Command.HANDSHAKE));
+            messageEncoder.flush();
+
+            response = (ResponseMessage) messageDecoder.readObject();
+            System.out.println("Server answer: " + response);
         }catch (Exception e){
             e.printStackTrace();
         }
+*/
 
+        CountDownLatch networkStarter = new CountDownLatch(1);
+        new Thread(() -> Network.getInstance().start(networkStarter)).start();
+
+        networkStarter.await();
+
+        JSONObject header = new JSONObject();
+
+        Sender.sendFile(header, Paths.get("send.me"), Network.getInstance().getCurrentChannel(), future -> {
+            if (!future.isSuccess()) {
+                future.cause().printStackTrace();
+            }else{
+                System.out.println("Header sent!");
+            }
+            Network.getInstance().stop();
+        });
+
+     /*   header.put(CommonSettings.J_COMMAND, Command.LOGIN.toString());
+        header.put(CommonSettings.J_USERNAME, "user-figuser");
+        header.put(CommonSettings.J_PASSWORD, "password-figasword");
+
+        Sender.sendHeader(header, Network.getInstance().getCurrentChannel(), future -> {
+            if (!future.isSuccess()) {
+                future.cause().printStackTrace();
+            }else{
+                System.out.println("Header sent!");
+            }
+            Network.getInstance().stop();
+        });*/
+
+        /*obj.put("name", "foo");
+        obj.put("num", new Integer(100));
+        obj.put("balance", new Double(1000.21));
+        obj.put("is_vip", new Boolean(true));*/
+
+
+//        ProtoFileSender.sendFile(Paths.get("demo.txt"), Network.getInstance().getCurrentChannel(), future -> {
+//            if (!future.isSuccess()) {
+//                future.cause().printStackTrace();
+////                Network.getInstance().stop();
+//            }
+//            if (future.isSuccess()) {
+//                System.out.println("Файл успешно передан");
+////                Network.getInstance().stop();
+//            }
+//        });
+////        Thread.sleep(2000);
+//        ProtoFileSender.sendFile(Paths.get("demo1.txt"), Network.getInstance().getCurrentChannel(), future -> {
+//            if (!future.isSuccess()) {
+//                future.cause().printStackTrace();
+////                Network.getInstance().stop();
+//            }
+//            if (future.isSuccess()) {
+//                System.out.println("Файл успешно передан");
+////                Network.getInstance().stop();
+//            }
+//        });
     }
 
     public static void main(String[] args) {

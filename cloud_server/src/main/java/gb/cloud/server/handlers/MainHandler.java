@@ -12,6 +12,8 @@ public class MainHandler extends ChannelInboundHandlerAdapter {
         if(message instanceof CommandMessage){
             CommandMessage commandMessage = (CommandMessage) message;
 
+//            context.pipeline().
+
             switch (commandMessage.getCommand()){
                 case LOGOUT:
                     //add auth handler before this
