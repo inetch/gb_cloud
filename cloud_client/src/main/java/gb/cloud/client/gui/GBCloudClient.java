@@ -4,19 +4,52 @@ import gb.cloud.client.network.Network;
 import gb.cloud.common.network.Sender;
 import gb.cloud.common.CommonSettings;
 import gb.cloud.common.network.Command;
-import javafx.application.Application;
-import javafx.fxml.Initializable;
-import javafx.stage.Stage;
 import org.json.simple.JSONObject;
 
-import java.net.URL;
-import java.nio.file.Paths;
-import java.util.ResourceBundle;
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.concurrent.CountDownLatch;
 
-public class MainWindow extends Application implements Initializable {
+public class GBCloudClient extends JFrame implements ActionListener {
+    private static final int WIDTH = 400;
+    private static final int HEIGHT = 300;
+
+    public static void main(String[] args) {
+        CountDownLatch networkStarter = new CountDownLatch(1);
+        new Thread(() -> Network.getInstance().start(networkStarter)).start();
+
+        try {
+            networkStarter.await();
+        }catch(InterruptedException ie){
+            ie.printStackTrace();
+        }
+        SwingUtilities.invokeLater(() -> new GBCloudClient());
+    }
+
     @Override
-    public void start(Stage primaryStage) throws Exception {
+    public void actionPerformed(ActionEvent e) {
+        Object src = e.getSource();
+    }
+
+    GBCloudClient(){
+        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setTitle("GBCloud File Client");
+        setSize(WIDTH, HEIGHT);
+
+        JSONObject header = new JSONObject();
+        header.put(CommonSettings.J_COMMAND, Command.PULL_TREE.toString());
+        Sender.sendHeader(header, Network.getInstance().getCurrentChannel(), future -> {
+            if (!future.isSuccess()) {
+                future.cause().printStackTrace();
+            }else{
+                System.out.println("Pull file");
+            }
+        });
+
+        setVisible(true);
+    }
+
       /*  FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/MainWindow.fxml"));
         Parent root = fxmlLoader.load();
         primaryStage.setTitle("Box Client");
@@ -24,13 +57,13 @@ public class MainWindow extends Application implements Initializable {
         primaryStage.setScene(scene);
         primaryStage.show();*/
 
-        primaryStage.setTitle("Hello world");
+       // primaryStage.setTitle("Hello world");
 
         /*Label label1 = new Label("Label1");
         Scene scene = new Scene(label1, 400, 200);
         primaryStage.setScene(scene);*/
 
-        primaryStage.show();
+        //primaryStage.show();
 
         /*
          try (Socket socket = new Socket("localhost", 8189);
@@ -69,7 +102,7 @@ public class MainWindow extends Application implements Initializable {
         }
 */
 
-        JSONObject header = new JSONObject();
+
 
      /*   Sender.sendFile(header, Paths.get("hw2.png"), Network.getInstance().getCurrentChannel(), future -> {
             if (!future.isSuccess()) {
@@ -102,14 +135,7 @@ public class MainWindow extends Application implements Initializable {
             }
         });*/
 
-        header.put(CommonSettings.J_COMMAND, Command.PULL_TREE.toString());
-        Sender.sendHeader(header, Network.getInstance().getCurrentChannel(), future -> {
-            if (!future.isSuccess()) {
-                future.cause().printStackTrace();
-            }else{
-                System.out.println("Pull file");
-            }
-        });
+
 
      /*   header.put(CommonSettings.J_COMMAND, Command.LOGIN.toString());
         header.put(CommonSettings.J_USERNAME, "user-figuser");
@@ -151,23 +177,5 @@ public class MainWindow extends Application implements Initializable {
 ////                Network.getInstance().stop();
 //            }
 //        });
-    }
 
-    public static void main(String[] args) {
-        CountDownLatch networkStarter = new CountDownLatch(1);
-        new Thread(() -> Network.getInstance().start(networkStarter)).start();
-
-        try {
-            networkStarter.await();
-        }catch(InterruptedException ie){
-            ie.printStackTrace();
-        }
-
-        Application.launch(args);
-    }
-
-    @Override
-    public void initialize(URL url, ResourceBundle resourceBundle) {
-
-    }
 }

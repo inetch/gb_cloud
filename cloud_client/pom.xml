@@ -11,29 +11,7 @@
 
     <artifactId>cloud_client</artifactId>
 
-    <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-base -->
     <dependencies>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-base</artifactId>
-            <version>15</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-graphics</artifactId>
-            <version>15</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-controls</artifactId>
-            <version>15</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-fxml</artifactId>
-            <version>15</version>
-        </dependency>
-
         <dependency>
             <groupId>gb.cloud</groupId>
             <artifactId>cloud_common</artifactId>
@@ -49,7 +27,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.4</version>
                 <configuration>
-                    <mainClass>gb.cloud.client.gui.MainWindow</mainClass>
+                    <mainClass>gb.cloud.client.gui.GBCloudClient</mainClass>
                 </configuration>
             </plugin>
         </plugins>
