@@ -1,8 +1,6 @@
 package gb.cloud.server;
 
 import gb.cloud.common.CommonSettings;
-import gb.cloud.common.JSONProcessor;
-import gb.cloud.common.network.TwoWayHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -24,7 +22,7 @@ public class Server {
 
                         protected void initChannel(SocketChannel socketChannel)/* throws Exception*/ {
                             socketChannel.pipeline().addLast(
-                                    new TwoWayHandler(ServerSettings.FILE_DIRECTORY)
+                                    new ServerHandler(ServerSettings.FILE_DIRECTORY, connection)
                             );
                         }
                     });

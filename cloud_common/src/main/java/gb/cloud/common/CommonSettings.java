@@ -8,6 +8,8 @@ public class CommonSettings {
     public static final String J_COMMAND = "command";
     public static final String J_USERNAME = "username";
     public static final String J_PASSWORD = "password";
+    public static final String J_RESULT = "result";
+    public static final String J_MESSAGE = "message";
 
     //JSON file entry field names
     public static final String J_FILE = "file";

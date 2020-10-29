@@ -7,10 +7,6 @@ import gb.cloud.common.network.User;
 import gb.cloud.common.password.Password;
 import org.json.simple.JSONObject;
 
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class HeaderProcessor {
@@ -23,14 +19,27 @@ public class HeaderProcessor {
     public CommandMessage processHeader(JSONObject header) {
         String command = (String)header.get(CommonSettings.J_COMMAND);
         CommandMessage cMessage = new CommandMessage(Command.valueOf(command));
+        if(header.containsKey(CommonSettings.J_RESULT)){
+            cMessage.setResult((boolean)header.get(CommonSettings.J_RESULT));
+        }else{
+            cMessage.setResult(true);
+        }
+
         JSONObject fileEntry;
 
         switch (cMessage.getCommand()){
             case LOGIN:
             case REGISTER:
-                cMessage.setUser(new User((String)header.get(CommonSettings.J_USERNAME), Password.getHash((String)header.get(CommonSettings.J_PASSWORD))));
+                User user = new User();
+                if(header.containsKey(CommonSettings.J_USERNAME)){
+                    user.setLogin((String)header.get(CommonSettings.J_USERNAME));
+                }
+                if(header.containsKey(CommonSettings.J_PASSWORD)){
+                    user.setPassword((String)header.get(CommonSettings.J_PASSWORD));
+                }
+                cMessage.setUser(user);
                 break;
-            case SEND_FILE:
+            case PUSH_FILE: //to server
                 fileEntry = (JSONObject)header.get(CommonSettings.J_FILE);
                 cMessage.setFileSize((long)fileEntry.get(CommonSettings.J_SIZE));
                 cMessage.setFilePath(Paths.get(fileDirectory + fileEntry.get(CommonSettings.J_FILENAME)));
@@ -39,9 +48,10 @@ public class HeaderProcessor {
                 fileEntry = (JSONObject)header.get(CommonSettings.J_FILE);
                 cMessage.setFilePath(Paths.get(fileDirectory + fileEntry.get(CommonSettings.J_FILENAME)));
                 break;
-            case SEND_TREE:
-                fileEntry = (JSONObject)header.get(CommonSettings.J_LIST);
-                cMessage.setFileTree(fileEntry);
+            case PULL_TREE: //tree request from client
+                break;
+            case PUSH_TREE: //response with tree from server
+                cMessage.setFileTree((JSONObject)header.get(CommonSettings.J_LIST));
                 break;
         }
 

@@ -26,6 +26,7 @@ public class JSONProcessor {
     }
 
     public static JSONObject listTree(Path path){
+        System.out.println("list Tree");
         DirectoryStream<Path> stream = null;
         JSONObject json = new JSONObject();
         if(!Files.isDirectory(path)){

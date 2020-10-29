@@ -2,7 +2,6 @@ package gb.cloud.client.network;
 
 import gb.cloud.client.ClientSettings;
 import gb.cloud.common.CommonSettings;
-import gb.cloud.common.network.TwoWayHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -31,7 +30,7 @@ public class Network {
         return currentChannel;
     }
 
-    public void start(CountDownLatch countDownLatch) {
+    public void start(CountDownLatch countDownLatch, IResponse responseProcessor) {
         EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap clientBootstrap = new Bootstrap();
@@ -41,7 +40,7 @@ public class Network {
                     .handler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
                             socketChannel.pipeline().addLast(
-                                    new TwoWayHandler(ClientSettings.FILE_DIRECTORY)
+                                    new ClientHandler(ClientSettings.FILE_DIRECTORY, responseProcessor)
                             );
                             currentChannel = socketChannel;
                         }
