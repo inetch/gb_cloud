@@ -30,7 +30,7 @@ public class Network {
         return currentChannel;
     }
 
-    public void start(CountDownLatch countDownLatch) {
+    public void start(CountDownLatch countDownLatch, IResponse responseProcessor) {
         EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap clientBootstrap = new Bootstrap();
@@ -39,7 +39,9 @@ public class Network {
                     .remoteAddress(new InetSocketAddress(ClientSettings.SERVER_ADDRESS, CommonSettings.SERVER_PORT))
                     .handler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
-                            socketChannel.pipeline().addLast();
+                            socketChannel.pipeline().addLast(
+                                    new ClientHandler(ClientSettings.FILE_DIRECTORY, responseProcessor)
+                            );
                             currentChannel = socketChannel;
                         }
                     });

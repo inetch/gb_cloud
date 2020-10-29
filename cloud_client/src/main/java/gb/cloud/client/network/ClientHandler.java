@@ -1,8 +1,9 @@
-package gb.cloud.server.handlers;
+package gb.cloud.client.network;
 
+import gb.cloud.common.HeaderProcessor;
 import gb.cloud.common.network.Command;
 import gb.cloud.common.network.CommandMessage;
-import gb.cloud.server.HeaderProcessor;
+import gb.cloud.common.network.Sender;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -11,14 +12,13 @@ import org.json.simple.parser.JSONParser;
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
-import java.util.Arrays;
 
-public class RawByteHandler  extends ChannelInboundHandlerAdapter {
+public class ClientHandler extends ChannelInboundHandlerAdapter {
     private enum State {
         IDLE
-      , READ_HEADER
-      , HEADER_GOT
-      , READ_FILE
+        , READ_HEADER
+        , HEADER_GOT
+        , READ_FILE
     }
 
     private State currentState  = State.IDLE;
@@ -30,12 +30,31 @@ public class RawByteHandler  extends ChannelInboundHandlerAdapter {
     private long receivedFileLength;
     private long fileLength;
 
+    private HeaderProcessor headerProcessor;
+    private final String fileDirectory;
+    private final IResponse response;
+
     JSONParser parser = new JSONParser();
 
+    public ClientHandler(String fileDirectory, IResponse response){
+        headerProcessor = new HeaderProcessor(fileDirectory);
+        this.fileDirectory = fileDirectory;
+        this.response = response;
+    }
+
+    private void gotResponse(CommandMessage message){
+        if(message.isOk()){
+            response.gotOk(message);
+        }else{
+            response.gotError(message);
+        }
+    }
+
     @Override
-    public void channelRead(ChannelHandlerContext context, Object message) throws Exception{
+    public void channelRead(ChannelHandlerContext context, Object message) throws Exception {
         ByteBuf buf = (ByteBuf)message;
-        System.out.println("channel read!");
+        CommandMessage commandMessage = null;
+        System.out.println("response handler channel read!");
 
         while (buf.readableBytes() > 0){
             if (currentState == State.IDLE) {
@@ -70,17 +89,25 @@ public class RawByteHandler  extends ChannelInboundHandlerAdapter {
 
             if(currentState == State.HEADER_GOT){
                 System.out.println("going to process header");
-                CommandMessage commandMessage = HeaderProcessor.processHeader(header);
+                commandMessage = headerProcessor.processHeader(header);
                 System.out.println(commandMessage.getCommand());
-                /*System.out.println(commandMessage.getUser().getLogin());
-                System.out.println(commandMessage.getUser().getPasswordHash());*/
-                if (commandMessage.getCommand() == Command.SEND_FILE){
-                    System.out.println(commandMessage.getFilePath());
-                    System.out.println(commandMessage.getFileSize());
-                    currentState = State.READ_FILE;
-                    receivedFileLength = 0L;
-                    fileLength = commandMessage.getFileSize();
-                    out = new BufferedOutputStream(new FileOutputStream(commandMessage.getFilePath().toFile()));
+
+                switch (commandMessage.getCommand()){
+                    case REGISTER:
+                    case LOGIN:
+                    case PUSH_FILE:
+                    case PUSH_TREE:
+                        gotResponse(commandMessage);
+                        currentState = State.IDLE;
+                        break;
+                    case PULL_FILE:
+                        currentState = State.READ_FILE;
+                        receivedFileLength = 0L;
+                        fileLength = commandMessage.getFileSize();
+                        out = new BufferedOutputStream(new FileOutputStream(commandMessage.getFilePath().toFile()));
+                        break;
+                    default:
+                        response.networkError();
                 }
             }
 
@@ -94,6 +121,8 @@ public class RawByteHandler  extends ChannelInboundHandlerAdapter {
                     currentState = State.IDLE;
                     System.out.println("File received!");
                     out.close();
+                    gotResponse(commandMessage);
+                    currentState = State.IDLE;
                 }
             }
         }
@@ -101,35 +130,4 @@ public class RawByteHandler  extends ChannelInboundHandlerAdapter {
             buf.release();
         }
     }
-
-
 }
-
-/*
-public enum State {
-        IDLE, NAME_LENGTH, NAME, FILE_LENGTH, FILE
-    }
-
-    private State currentState = State.IDLE;
-    private int nextLength;
-    private long fileLength;
-    private long receivedFileLength;
-    private BufferedOutputStream out;
-
-    //FIRST_BYTE, INT , FILE_NAME, FILE_LEN, FILE_DATA
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        ByteBuf buf = ((ByteBuf) msg);
-        while (buf.readableBytes() > 0) {
-            if (currentState == State.IDLE) {
-                byte readed = buf.readByte();
-                if (readed == (byte) 25) {
-                    currentState = State.NAME_LENGTH;
-                    receivedFileLength = 0L;
-                    System.out.println("STATE: Start file receiving");
-                } else {
-                    System.out.println("ERROR: Invalid first byte - " + readed);
-                }
-            }
-
-* */
