@@ -1,0 +1,1 @@
+create unique index usr_user_login_ndx on usr_user (login);

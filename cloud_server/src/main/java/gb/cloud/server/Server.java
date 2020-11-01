@@ -1,6 +1,7 @@
 package gb.cloud.server;
 
 import gb.cloud.common.CommonSettings;
+import gb.cloud.server.db.DBMain;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -18,7 +19,7 @@ public class Server {
             b.group(mainGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
-                        private ClientConnection connection = new ClientConnection();
+                        private ClientConnection connection = new ClientConnection(new DBMain(ServerSettings.DB_FILE));
 
                         protected void initChannel(SocketChannel socketChannel)/* throws Exception*/ {
                             socketChannel.pipeline().addLast(

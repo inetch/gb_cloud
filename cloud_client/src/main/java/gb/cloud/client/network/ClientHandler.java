@@ -1,9 +1,9 @@
 package gb.cloud.client.network;
 
-import gb.cloud.common.HeaderProcessor;
-import gb.cloud.common.network.Command;
+import gb.cloud.client.ClientSettings;
+import gb.cloud.common.header.HeaderProcessor;
+import gb.cloud.common.header.StreamHeader;
 import gb.cloud.common.network.CommandMessage;
-import gb.cloud.common.network.Sender;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -22,8 +22,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     }
 
     private State currentState  = State.IDLE;
-    private int bracketCounter  = 0;
-    private StringBuffer headerBuffer = new StringBuffer();
     private JSONObject header;
 
     private BufferedOutputStream out;
@@ -31,14 +29,11 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     private long fileLength;
 
     private HeaderProcessor headerProcessor;
-    private final String fileDirectory;
     private final IResponse response;
 
     JSONParser parser = new JSONParser();
 
     public ClientHandler(String fileDirectory, IResponse response){
-        headerProcessor = new HeaderProcessor(fileDirectory);
-        this.fileDirectory = fileDirectory;
         this.response = response;
     }
 
@@ -55,6 +50,8 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         ByteBuf buf = (ByteBuf)message;
         CommandMessage commandMessage = null;
         System.out.println("response handler channel read!");
+        StringBuffer headerBuffer= new StringBuffer();
+        StreamHeader streamHeader = new StreamHeader(headerBuffer);
 
         while (buf.readableBytes() > 0){
             if (currentState == State.IDLE) {
@@ -62,34 +59,22 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
                 System.out.print(c);
                 if (c == '{'){
                     currentState = State.READ_HEADER;
+                    streamHeader.start(c);
                     System.out.println("to read header");
-                    headerBuffer.append(c);
-                    bracketCounter++;
                 }
             }
 
             if(currentState == State.READ_HEADER){
-                char c = (char)buf.readByte();
-                System.out.print(c);
-                headerBuffer.append(c);
-                if (c == '{') {
-                    bracketCounter++;
-                }
-                if (c == '}') {
-                    bracketCounter--;
-                }
-                if (bracketCounter == 0) {
+                if (streamHeader.next((char)buf.readByte())) {
                     currentState = State.HEADER_GOT;
                     System.out.println("header got");
-
-                    parser.reset();
-                    header = (JSONObject) parser.parse(headerBuffer.toString());
+                    header = streamHeader.toJSON();
                 }
             }
 
             if(currentState == State.HEADER_GOT){
                 System.out.println("going to process header");
-                commandMessage = headerProcessor.processHeader(header);
+                commandMessage = HeaderProcessor.processHeader(header, ClientSettings.FILE_DIRECTORY);
                 System.out.println(commandMessage.getCommand());
 
                 switch (commandMessage.getCommand()){

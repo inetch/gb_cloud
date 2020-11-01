@@ -1,7 +1,7 @@
 package gb.cloud.common.network;
 
 import gb.cloud.common.CommonSettings;
-import gb.cloud.common.JSONProcessor;
+import gb.cloud.common.header.JSONProcessor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.*;

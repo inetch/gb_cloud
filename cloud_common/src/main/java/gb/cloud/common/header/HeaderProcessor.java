@@ -1,4 +1,4 @@
-package gb.cloud.common;
+package gb.cloud.common.header;
 
 import gb.cloud.common.CommonSettings;
 import gb.cloud.common.network.Command;
@@ -10,13 +10,7 @@ import org.json.simple.JSONObject;
 import java.nio.file.Paths;
 
 public class HeaderProcessor {
-    private final String fileDirectory;
-
-    public HeaderProcessor(String fileDirectory){
-        this.fileDirectory = fileDirectory;
-    }
-
-    public CommandMessage processHeader(JSONObject header) {
+    public static CommandMessage processHeader(JSONObject header, String rootDirectory) {
         String command = (String)header.get(CommonSettings.J_COMMAND);
         CommandMessage cMessage = new CommandMessage(Command.valueOf(command));
         if(header.containsKey(CommonSettings.J_RESULT)){
@@ -42,11 +36,11 @@ public class HeaderProcessor {
             case PUSH_FILE: //to server
                 fileEntry = (JSONObject)header.get(CommonSettings.J_FILE);
                 cMessage.setFileSize((long)fileEntry.get(CommonSettings.J_SIZE));
-                cMessage.setFilePath(Paths.get(fileDirectory + fileEntry.get(CommonSettings.J_FILENAME)));
+                cMessage.setFilePath(Paths.get(rootDirectory + fileEntry.get(CommonSettings.J_FILENAME)));
                 break;
             case PULL_FILE:
                 fileEntry = (JSONObject)header.get(CommonSettings.J_FILE);
-                cMessage.setFilePath(Paths.get(fileDirectory + fileEntry.get(CommonSettings.J_FILENAME)));
+                cMessage.setFilePath(Paths.get(rootDirectory + fileEntry.get(CommonSettings.J_FILENAME)));
                 break;
             case PULL_TREE: //tree request from client
                 break;

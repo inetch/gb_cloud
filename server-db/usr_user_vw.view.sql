@@ -1,0 +1,1 @@
+create view usr_user_vw as select * from usr_user;

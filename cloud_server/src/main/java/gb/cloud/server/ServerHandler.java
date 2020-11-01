@@ -1,8 +1,7 @@
 package gb.cloud.server;
 
-import gb.cloud.common.CommonSettings;
-import gb.cloud.common.HeaderProcessor;
-import gb.cloud.common.JSONProcessor;
+import gb.cloud.common.header.HeaderProcessor;
+import gb.cloud.common.header.StreamHeader;
 import gb.cloud.common.network.Command;
 import gb.cloud.common.network.CommandMessage;
 import gb.cloud.common.network.Sender;
@@ -25,24 +24,16 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     }
 
     private State currentState  = State.IDLE;
-    private int bracketCounter  = 0;
-    private StringBuffer headerBuffer = new StringBuffer();
     private JSONObject header;
-
     private BufferedOutputStream out;
     private long receivedFileLength;
     private long fileLength;
-
-    private HeaderProcessor headerProcessor;
-    private final String fileDirectory;
 
     private final ClientConnection client;
 
     JSONParser parser = new JSONParser();
 
     public ServerHandler(String fileDirectory, ClientConnection client){
-        headerProcessor = new HeaderProcessor(fileDirectory);
-        this.fileDirectory = fileDirectory;
         this.client = client;
     }
 
@@ -50,6 +41,8 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext context, Object message) throws Exception {
         ByteBuf buf = (ByteBuf)message;
         System.out.println("response handler channel read!");
+        StringBuffer headerBuffer= new StringBuffer();
+        StreamHeader streamHeader = new StreamHeader(headerBuffer);
 
         while (buf.readableBytes() > 0){
             if (currentState == State.IDLE) {
@@ -57,42 +50,33 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                 System.out.print(c);
                 if (c == '{'){
                     currentState = State.READ_HEADER;
+                    streamHeader.start(c);
                     System.out.println("to read header");
-                    headerBuffer.append(c);
-                    bracketCounter++;
                 }
             }
 
             if(currentState == State.READ_HEADER){
-                char c = (char)buf.readByte();
-                headerBuffer.append(c);
-                if (c == '{') {
-                    bracketCounter++;
-                }
-                if (c == '}') {
-                    bracketCounter--;
-                }
-                if (bracketCounter == 0) {
+                if (streamHeader.next((char)buf.readByte())) {
                     currentState = State.HEADER_GOT;
                     System.out.println("header got");
-                    parser.reset();
-                    System.out.println("parser ready");
-                    String stringHeader = headerBuffer.toString();
-                    System.out.println("going to parse the string");
-                    System.out.println(stringHeader);
-                    header = (JSONObject) parser.parse(stringHeader);
-                    System.out.println("header parsed");
+                    header = streamHeader.toJSON();
                 }
             }
 
             if(currentState == State.HEADER_GOT){
                 System.out.println("going to process header");
-                CommandMessage commandMessage = headerProcessor.processHeader(header);
+                CommandMessage commandMessage = HeaderProcessor.processHeader(header, ServerSettings.FILE_DIRECTORY);
                 System.out.println(commandMessage.getCommand());
 
-                if (commandMessage.getCommand() == Command.LOGIN){
-                    commandMessage.setResult(true);
-                    client.setAuthorized(true);
+                if (commandMessage.getCommand() == Command.LOGIN || commandMessage.getCommand() == Command.REGISTER){
+                    boolean loggedIn;
+                    if (commandMessage.getCommand() == Command.LOGIN) {
+                        loggedIn = client.getDb().loginUser(commandMessage.getUser());
+                    }else{
+                        loggedIn = client.getDb().registerUser(commandMessage.getUser());
+                    }
+                    commandMessage.setResult(loggedIn);
+                    client.setAuthorized(loggedIn);
                     client.setUsername(commandMessage.getUser().getLogin());
                     Sender.sendMessage(commandMessage, true, context.channel(), null);
                     currentState = State.IDLE;
@@ -103,7 +87,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                         commandMessage.setResult(true);
                     }else{
                         commandMessage.setResult(false);
-                        commandMessage.setErrorMessage("Unauthorize request");
+                        commandMessage.setErrorMessage("Unauthorized request");
                     }
                     Sender.sendMessage(commandMessage, true, context.channel(), null);
 

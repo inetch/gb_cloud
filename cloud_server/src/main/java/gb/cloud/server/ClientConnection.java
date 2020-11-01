@@ -1,13 +1,20 @@
 package gb.cloud.server;
 
-import gb.cloud.common.network.User;
+import gb.cloud.server.db.DBMain;
 
 public class ClientConnection {
     private boolean isAuthorized;
     private String username;
 
-    public ClientConnection(){
+    public DBMain getDb() {
+        return db;
+    }
+
+    private final DBMain db;
+
+    public ClientConnection(DBMain db){
         this.isAuthorized = false;
+        this.db = db;
     }
 
     public void setAuthorized(boolean isAuthorized){

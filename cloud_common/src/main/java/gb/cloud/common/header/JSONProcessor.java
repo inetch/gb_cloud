@@ -1,5 +1,6 @@
-package gb.cloud.common;
+package gb.cloud.common.header;
 
+import gb.cloud.common.CommonSettings;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 

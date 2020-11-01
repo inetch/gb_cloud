@@ -1,0 +1,1 @@
+create view usr_log_vw as select * from usr_log;
