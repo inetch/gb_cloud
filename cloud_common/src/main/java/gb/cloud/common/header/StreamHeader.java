@@ -6,7 +6,7 @@ import org.json.simple.parser.ParseException;
 
 public class StreamHeader {
     private int bracketCounter;
-    private final StringBuffer headerBuffer;
+    private StringBuffer headerBuffer;
     private boolean isFinished;
     private enum HState {
         NORMAL
@@ -15,17 +15,32 @@ public class StreamHeader {
     }
     private HState hState = HState.NORMAL;
 
-    public StreamHeader(StringBuffer headerBuffer){
-        this.headerBuffer = headerBuffer;
+    private JSONObject json;
+
+    public StreamHeader(){
         bracketCounter = 0;
     }
 
-    public void start(char c){
-        headerBuffer.append(c);
-        bracketCounter++;
-        isFinished = false;
+    /**Returns TRUE if the JSON header is started
+     * */
+    public boolean start(char c){
+        boolean res;
+        if(c == '{') {
+            headerBuffer = new StringBuffer(); //work, GC, work
+            headerBuffer.append(c);
+            bracketCounter++;
+            isFinished = false;
+            res = true;
+            json = new JSONObject();
+        }else{
+            res = false;
+        }
+        System.out.println("start: " + headerBuffer.toString());
+        return res;
     }
 
+    /**Returns TRUE if the JSON header is finished
+     * */
     public boolean next(char c){
         headerBuffer.append(c);
         if (hState == HState.NORMAL) {
@@ -53,30 +68,24 @@ public class StreamHeader {
         }
         if(bracketCounter == 0){
             isFinished = true;
+
+            JSONParser parser = new JSONParser();
+            parser.reset();
+            String stringHeader = headerBuffer.toString();
+
+            try {
+                json = (JSONObject) parser.parse(stringHeader);
+            }catch (ParseException e){
+                e.printStackTrace();
+            }
+
         }else{
             isFinished = false;
         }
         return isFinished;
     }
 
-    public JSONObject toJSON(){
-        if (!isFinished){
-            new JSONObject();
-        }
-
-        JSONObject header;
-        JSONParser parser = new JSONParser();
-        parser.reset();
-        String stringHeader = headerBuffer.toString();
-        System.out.println(stringHeader);
-
-        try {
-            header = (JSONObject) parser.parse(stringHeader);
-        }catch (ParseException e){
-            e.printStackTrace();
-            return new JSONObject();
-        }
-
-        return header;
+    public JSONObject getJson(){
+        return json;
     }
 }

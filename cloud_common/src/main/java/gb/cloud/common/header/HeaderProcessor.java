@@ -45,7 +45,7 @@ public class HeaderProcessor {
             case PULL_TREE: //tree request from client
                 break;
             case PUSH_TREE: //response with tree from server
-                cMessage.setFileTree((JSONObject)header.get(CommonSettings.J_LIST));
+                cMessage.setFileTree((JSONObject)header.get(CommonSettings.J_TREE));
                 break;
         }
 

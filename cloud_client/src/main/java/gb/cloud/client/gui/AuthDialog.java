@@ -22,8 +22,8 @@ public class AuthDialog extends JDialog/* implements ActionListener*/ {
         //Object src = e.getSource();
     }*/
 
-    private static final int WIDTH = 400;
-    private static final int HEIGHT = 400;
+    private static final int WIDTH = 300;
+    private static final int HEIGHT = 200;
 
     private final JPanel wrapPanel = new JPanel(new GridLayout(3, 1));
 
@@ -54,6 +54,7 @@ public class AuthDialog extends JDialog/* implements ActionListener*/ {
     public AuthDialog() {
         setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
         setSize(WIDTH, HEIGHT);
+        setResizable(false);
 
         userPanel.add(new JLabel("user:"));
         userPanel.add(userText);
@@ -75,14 +76,14 @@ public class AuthDialog extends JDialog/* implements ActionListener*/ {
             }else{
                 command = Command.REGISTER;
             }
-            //command = Command.PULL_TREE;
             CommandMessage message = new CommandMessage(command);
             message.setUser(new User(userText.getText(), Arrays.toString(passwordText.getPassword())));
             try {
-                Sender.sendMessage(message, false, Network.getInstance().getCurrentChannel(), null);
+                Sender.sendMessage(message, false, Network.getInstance().getCurrentChannel().pipeline().firstContext(), null);
             } catch (IOException ioException) {
                 ioException.printStackTrace();
             }
+            setVisible(false);
         });
     }
 }

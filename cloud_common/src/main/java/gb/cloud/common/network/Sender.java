@@ -12,33 +12,33 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class Sender {
-    private static void send(JSONObject header, Path path, Channel channel, ChannelFutureListener finishListener) throws IOException{
+    private static void send(JSONObject header, Path path, ChannelHandlerContext context, ChannelFutureListener finishListener) throws IOException{
         System.out.println("send header and file");
         byte[] bytes = header.toString().getBytes(StandardCharsets.UTF_8);
         ByteBuf buf = ByteBufAllocator.DEFAULT.directBuffer(bytes.length);
         long fileSize = Files.size(path);
         FileRegion region = new DefaultFileRegion(path.toFile(), 0, fileSize);
         buf.writeBytes(bytes);
-        channel.write(buf);
-        ChannelFuture transferOperationFuture = channel.writeAndFlush(region);
+        context.write(buf);
+        ChannelFuture transferOperationFuture = context.writeAndFlush(region);
         if (finishListener != null) {
             transferOperationFuture.addListener(finishListener);
         }
     }
 
-    private static void send(JSONObject header, Channel channel, ChannelFutureListener finishListener){
+    private static void send(JSONObject header, ChannelHandlerContext context, ChannelFutureListener finishListener){
         System.out.println("send header");
         byte[] bytes = header.toString().getBytes(StandardCharsets.UTF_8);
         ByteBuf buf = ByteBufAllocator.DEFAULT.directBuffer(bytes.length);
         buf.writeBytes(bytes);
-        ChannelFuture transferOperationFuture = channel.writeAndFlush(buf);
+        ChannelFuture transferOperationFuture = context.writeAndFlush(buf);
         if (finishListener != null) {
             transferOperationFuture.addListener(finishListener);
         }
     }
 
-    public static void sendMessage(CommandMessage message, boolean isResponse, Channel channel, ChannelFutureListener finishListener) throws IOException {
-        System.out.println("sendMessage");
+    public static void sendMessage(CommandMessage message, boolean isResponse, ChannelHandlerContext context, ChannelFutureListener finishListener) throws IOException {
+        System.out.println("sendMessage, command: " + message.getCommand().toString());
         JSONObject header = new JSONObject();
         JSONObject fileEntry = new JSONObject();
         Path path = message.getFilePath();
@@ -47,7 +47,7 @@ public class Sender {
             header.put(CommonSettings.J_RESULT, message.isOk());
             if(!message.isOk()){
                 header.put(CommonSettings.J_MESSAGE, message.getErrorMessage());
-                send(header, channel, finishListener);
+                send(header, context, finishListener);
             }
         }
 
@@ -59,16 +59,16 @@ public class Sender {
                     if (!isResponse) {
                         header.put(CommonSettings.J_PASSWORD, message.getUser().getPassword());
                     }
-                    send(header, channel, finishListener);
+                    send(header, context, finishListener);
                     break;
                 case PUSH_FILE: //from client to server
                     fileEntry.put(CommonSettings.J_FILENAME, path.getFileName().toString());
                     fileEntry.put(CommonSettings.J_SIZE, Files.size(path));
                     header.put(CommonSettings.J_FILE, fileEntry);
                     if (isResponse) {
-                        send(header, channel, finishListener);
+                        send(header, context, finishListener);
                     } else {
-                        send(header, path, channel, finishListener);
+                        send(header, path, context, finishListener);
                     }
                     break;
 
@@ -77,15 +77,15 @@ public class Sender {
                     fileEntry.put(CommonSettings.J_FILENAME, path.getFileName().toString());
                     fileEntry.put(CommonSettings.J_SIZE, Files.size(path));
                     header.put(CommonSettings.J_FILE, fileEntry);
-                    send(header, path, channel, finishListener);
+                    send(header, path, context, finishListener);
                     break;
 
                 case PUSH_TREE:
                     if (isResponse) {
-                        header.put(CommonSettings.J_LIST, JSONProcessor.listTree(path));
+                        header.put(CommonSettings.J_TREE, JSONProcessor.listTree(path));
                     }
                 case PULL_TREE:
-                    send(header, channel, finishListener);
+                    send(header, context, finishListener);
                     break;
             }
         }

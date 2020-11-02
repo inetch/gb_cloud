@@ -17,5 +17,6 @@ public class CommonSettings {
     public static final String J_SIZE = "size";
     public static final String J_FOLDER = "folder";
     public static final String J_LIST = "list";
+    public static final String J_TREE = "tree";
 
 }

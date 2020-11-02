@@ -40,7 +40,7 @@ public class Network {
                     .handler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
                             socketChannel.pipeline().addLast(
-                                    new ClientHandler(ClientSettings.FILE_DIRECTORY, responseProcessor)
+                                    new ClientHandler(responseProcessor)
                             );
                             currentChannel = socketChannel;
                         }

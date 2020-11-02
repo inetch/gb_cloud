@@ -2,9 +2,25 @@ package gb.cloud.server;
 
 import gb.cloud.server.db.DBMain;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 public class ClientConnection {
     private boolean isAuthorized;
     private String username;
+    private Path userPath;
+
+    public Path getUserPath() {
+        return userPath;
+    }
+
+    public void setUserPath(Path userPath) {
+        this.userPath = userPath;
+    }
+
+    public void setUserPath(String userPathString) {
+        this.userPath = Paths.get(userPathString);
+    }
 
     public DBMain getDb() {
         return db;
@@ -31,5 +47,8 @@ public class ClientConnection {
 
     public void setUsername(String username) {
         this.username = username;
+        if(isAuthorized){
+            setUserPath(ServerSettings.FILE_DIRECTORY + username + "/");
+        }
     }
 }
