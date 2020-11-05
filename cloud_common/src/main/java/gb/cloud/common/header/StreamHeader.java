@@ -4,9 +4,14 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import java.io.ByteArrayOutputStream;
+import java.io.UnsupportedEncodingException;
+
+/*Parses incoming bytes to JSON header
+* */
 public class StreamHeader {
     private int bracketCounter;
-    private StringBuffer headerBuffer;
+    private ByteArrayOutputStream byteStream;
     private boolean isFinished;
     private enum HState {
         NORMAL
@@ -23,11 +28,11 @@ public class StreamHeader {
 
     /**Returns TRUE if the JSON header is started
      * */
-    public boolean start(char c){
+    public boolean start(byte c){
         boolean res;
         if(c == '{') {
-            headerBuffer = new StringBuffer(); //work, GC, work
-            headerBuffer.append(c);
+            byteStream = new ByteArrayOutputStream(); //work, GC, work
+            byteStream.write(c);
             bracketCounter++;
             isFinished = false;
             res = true;
@@ -35,14 +40,13 @@ public class StreamHeader {
         }else{
             res = false;
         }
-        System.out.println("start: " + headerBuffer.toString());
         return res;
     }
 
     /**Returns TRUE if the JSON header is finished
      * */
-    public boolean next(char c){
-        headerBuffer.append(c);
+    public boolean next(byte c){
+        byteStream.write(c);
         if (hState == HState.NORMAL) {
             if (c == '{') {
                 bracketCounter++;
@@ -71,10 +75,18 @@ public class StreamHeader {
 
             JSONParser parser = new JSONParser();
             parser.reset();
-            String stringHeader = headerBuffer.toString();
+            String streamHeader;
+            try {
+                streamHeader = byteStream.toString("UTF-8");
+            }catch (UnsupportedEncodingException e){
+                e.printStackTrace();
+                streamHeader = "";
+            }
+
+            System.out.println(streamHeader);
 
             try {
-                json = (JSONObject) parser.parse(stringHeader);
+                json = (JSONObject) parser.parse(streamHeader);
             }catch (ParseException e){
                 e.printStackTrace();
             }

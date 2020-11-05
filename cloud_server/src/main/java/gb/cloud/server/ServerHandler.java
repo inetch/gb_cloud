@@ -9,10 +9,10 @@ import gb.cloud.server.db.DBMain;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import org.json.simple.JSONObject;
 
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -30,7 +30,11 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     private long receivedFileLength;
     private long fileLength;
 
+    /*thread-safe analog of the HashMap
+     * */
     Hashtable<ChannelHandlerContext, ClientConnection> connectionMap;
+
+
     StreamHeader streamHeader = new StreamHeader();
 
     public ServerHandler(Hashtable<ChannelHandlerContext, ClientConnection> connectionMap){
@@ -56,17 +60,16 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
         ByteBuf buf = (ByteBuf)message;
 
-
         while (buf.readableBytes() > 0){
             if (currentState == State.IDLE) {
-                if(streamHeader.start((char)buf.readByte())){
+                if(streamHeader.start(buf.readByte())){
                     currentState = State.READ_HEADER;
                     System.out.println("to read header");
                 }
             }
 
             if(currentState == State.READ_HEADER){
-                if (streamHeader.next((char)buf.readByte())) {
+                if (streamHeader.next(buf.readByte())) {
                     currentState = State.HEADER_GOT;
                     System.out.println("header got");
                 }
@@ -79,14 +82,27 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
                 if (commandMessage.getCommand() == Command.LOGIN || commandMessage.getCommand() == Command.REGISTER){
                     boolean loggedIn;
-                    if (commandMessage.getCommand() == Command.LOGIN) {
-                        loggedIn = client.getDb().loginUser(commandMessage.getUser());
-                    }else{
-                        loggedIn = client.getDb().registerUser(commandMessage.getUser());
+                    try {
+                        if (commandMessage.getCommand() == Command.LOGIN) {
+                            loggedIn = client.login(commandMessage.getUser());
+                            if(!loggedIn){
+                                commandMessage.setErrorMessage("Invalid username or password");
+                            }
+                        } else {
+                            loggedIn = client.register(commandMessage.getUser());
+                            if(!loggedIn){
+                                commandMessage.setErrorMessage("User exists already");
+                            }
+                        }
+                    }catch(IOException e){
+                        loggedIn = false;
+                        commandMessage.setErrorMessage("Server error: " + e.getMessage());
+                        e.printStackTrace();
                     }
                     commandMessage.setResult(loggedIn);
-                    client.setAuthorized(loggedIn);
-                    client.setUsername(commandMessage.getUser().getLogin());
+                    if(loggedIn){
+                        commandMessage.setFilePath(client.getUserPath());
+                    }
                     Sender.sendMessage(commandMessage, true, context, null);
                     currentState = State.IDLE;
                 }else{
@@ -105,8 +121,28 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
                 if (commandMessage.getCommand() == Command.PULL_TREE){
                     CommandMessage responseMessage = new CommandMessage(Command.PUSH_TREE);
+                    responseMessage.setFilePath(client.getUserPath());
                     responseMessage.setResult(true);
-                    responseMessage.setFilePath(Paths.get(ServerSettings.FILE_DIRECTORY));
+                    Sender.sendMessage(responseMessage, true, context, null);
+                    currentState = State.IDLE;
+                }
+
+                if (commandMessage.getCommand() == Command.CREATE_DIR){
+                    Path folder = Paths.get(ServerSettings.FILE_DIRECTORY + commandMessage.getTargetFolder());
+                    CommandMessage responseMessage = new CommandMessage(Command.CREATE_DIR);
+                    responseMessage.setTargetFolder(commandMessage.getTargetFolder());
+                    if(Files.exists(folder)){
+                        responseMessage.setResult(false);
+                        responseMessage.setErrorMessage("Folder already exists!");
+                    }else{
+                        try {
+                            Files.createDirectory(folder);
+                            responseMessage.setResult(true);
+                        }catch (IOException e){
+                            responseMessage.setResult(false);
+                            responseMessage.setErrorMessage("Server error: " + e.getMessage());
+                        }
+                    }
                     Sender.sendMessage(responseMessage, true, context, null);
                     currentState = State.IDLE;
                 }
@@ -115,7 +151,6 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                     receivedFileLength = 0L;
                     fileLength = commandMessage.getFileSize();
                     out = new BufferedOutputStream(new FileOutputStream(commandMessage.getFilePath().toFile()));
-
                     currentState = State.READ_FILE;
                 }
 
@@ -133,7 +168,6 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                     out.close();
                 }
 
-                currentState = State.IDLE;
             }
         }
         if (buf.readableBytes() == 0) {

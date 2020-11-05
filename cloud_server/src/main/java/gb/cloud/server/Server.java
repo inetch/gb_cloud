@@ -11,7 +11,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
-import java.util.HashMap;
 import java.util.Hashtable;
 
 public class Server {
@@ -26,8 +25,6 @@ public class Server {
             b.group(mainGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
-                        private ClientConnection connection = new ClientConnection(new DBMain(ServerSettings.DB_FILE));
-
                         protected void initChannel(SocketChannel socketChannel)/* throws Exception*/ {
                             socketChannel.pipeline().addLast(
                                     new ServerHandler(connectionMap)

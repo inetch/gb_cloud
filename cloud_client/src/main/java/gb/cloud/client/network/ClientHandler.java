@@ -7,12 +7,9 @@ import gb.cloud.common.network.CommandMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import org.json.simple.JSONObject;
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.nio.file.Path;
 
 public class ClientHandler extends ChannelInboundHandlerAdapter {
     private enum State {
@@ -53,12 +50,10 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext context, Object message) throws Exception {
-        System.out.println("channelRead, state: " + currentState);
         ByteBuf buf = (ByteBuf)message;
 
         while (buf.readableBytes() > 0){
-            char c = (char)buf.readByte();
-            System.out.print(c);
+            byte c = buf.readByte();
             if (currentState == State.IDLE) {
                 if(streamHeader.start(c)){
                     currentState = State.READ_HEADER;
@@ -68,15 +63,14 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 
             if(currentState == State.READ_HEADER){
                 if (streamHeader.next(c)) {
-                    System.out.println("\ngoing to process header");
                     commandMessage = HeaderProcessor.processHeader(streamHeader.getJson(), ClientSettings.FILE_DIRECTORY);
-                    System.out.println(commandMessage.getCommand());
 
                     switch (commandMessage.getCommand()){
                         case REGISTER:
                         case LOGIN:
                         case PUSH_FILE:
                         case PUSH_TREE:
+                        case CREATE_DIR:
                             currentState = State.IDLE;
                             gotResponse(commandMessage);
                             break;
@@ -99,26 +93,11 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
                     receivedFileLength++;
                 }
                 if(receivedFileLength == fileLength){
-                    currentState = State.IDLE;
-                    System.out.println("File received!");
                     out.close();
                     gotResponse(commandMessage);
                     currentState = State.IDLE;
                 }
                 continue;
-
-                /*while (buf.readableBytes() > 0 && receivedFileLength < fileLength){
-                    out.write(buf.readByte());
-                    receivedFileLength++;
-                }
-
-                if(receivedFileLength == fileLength){
-                    currentState = State.IDLE;
-                    System.out.println("File received!");
-                    out.close();
-                    gotResponse(commandMessage);
-                    currentState = State.IDLE;
-                }*/
             }
         }
         if (buf.readableBytes() == 0) {

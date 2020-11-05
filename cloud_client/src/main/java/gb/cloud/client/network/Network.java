@@ -2,6 +2,8 @@ package gb.cloud.client.network;
 
 import gb.cloud.client.ClientSettings;
 import gb.cloud.common.CommonSettings;
+import gb.cloud.common.network.CommandMessage;
+import gb.cloud.common.network.Sender;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -11,6 +13,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CountDownLatch;
 
@@ -62,5 +65,17 @@ public class Network {
 
     public void stop() {
         currentChannel.close();
+    }
+
+    public static boolean simpleSend(CommandMessage message){
+        boolean res;
+        try {
+            Sender.sendMessage(message, false, ourInstance.getCurrentChannel().pipeline().firstContext(), null);
+            res = true;
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
+            res = false;
+        }
+        return res;
     }
 }

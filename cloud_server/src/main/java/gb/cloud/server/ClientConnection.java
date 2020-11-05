@@ -1,10 +1,16 @@
 package gb.cloud.server;
 
+import gb.cloud.common.network.User;
 import gb.cloud.server.db.DBMain;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/*
+Keeps clint's context
+* */
 public class ClientConnection {
     private boolean isAuthorized;
     private String username;
@@ -35,6 +41,30 @@ public class ClientConnection {
 
     public void setAuthorized(boolean isAuthorized){
         this.isAuthorized = isAuthorized;
+    }
+
+    private void setPath(User user) throws IOException{
+        this.username = user.getLogin();
+        setUserPath(ServerSettings.FILE_DIRECTORY + username + "/");
+        if(Files.notExists(userPath)){
+            Files.createDirectories(userPath);
+        }
+    }
+
+    public boolean login(User user) throws IOException {
+        isAuthorized = db.loginUser(user);
+        if(isAuthorized){
+            setPath(user);
+        }
+        return isAuthorized;
+    }
+
+    public boolean register(User user) throws IOException {
+        boolean ok = db.registerUser(user);
+        if(ok){
+            setPath(user);
+        }
+        return ok;
     }
 
     public boolean isAuthorized(){

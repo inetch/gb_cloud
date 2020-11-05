@@ -5,6 +5,9 @@ import org.json.simple.JSONObject;
 import java.nio.file.Path;
 import java.util.Objects;
 
+/*Class for the headers
+* */
+
 public class CommandMessage extends AbstractMessage {
     private final Command command;
     private User user;
@@ -12,7 +15,16 @@ public class CommandMessage extends AbstractMessage {
     private long fileSize;
     private boolean result;
     private String errorMessage;
-    private JSONObject fileTree;
+    private JSONObject fileTree = null;
+    private String targetFolder;
+
+    public String getTargetFolder() {
+        return targetFolder;
+    }
+
+    public void setTargetFolder(String targetFolder) {
+        this.targetFolder = targetFolder;
+    }
 
     public String getErrorMessage() {
         return errorMessage;

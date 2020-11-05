@@ -11,9 +11,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+
+/*
+Serializes the CommandMessage object to JSON, and sends JSON header and the byte-file, if needed
+* */
 public class Sender {
     private static void send(JSONObject header, Path path, ChannelHandlerContext context, ChannelFutureListener finishListener) throws IOException{
-        System.out.println("send header and file");
         byte[] bytes = header.toString().getBytes(StandardCharsets.UTF_8);
         ByteBuf buf = ByteBufAllocator.DEFAULT.directBuffer(bytes.length);
         long fileSize = Files.size(path);
@@ -27,7 +30,6 @@ public class Sender {
     }
 
     private static void send(JSONObject header, ChannelHandlerContext context, ChannelFutureListener finishListener){
-        System.out.println("send header");
         byte[] bytes = header.toString().getBytes(StandardCharsets.UTF_8);
         ByteBuf buf = ByteBufAllocator.DEFAULT.directBuffer(bytes.length);
         buf.writeBytes(bytes);
@@ -38,7 +40,6 @@ public class Sender {
     }
 
     public static void sendMessage(CommandMessage message, boolean isResponse, ChannelHandlerContext context, ChannelFutureListener finishListener) throws IOException {
-        System.out.println("sendMessage, command: " + message.getCommand().toString());
         JSONObject header = new JSONObject();
         JSONObject fileEntry = new JSONObject();
         Path path = message.getFilePath();
@@ -58,6 +59,8 @@ public class Sender {
                     header.put(CommonSettings.J_USERNAME, message.getUser().getLogin());
                     if (!isResponse) {
                         header.put(CommonSettings.J_PASSWORD, message.getUser().getPassword());
+                    }else{//the file list in case of the user is successfully logged in
+                        header.put(CommonSettings.J_TREE, JSONProcessor.listTree(path));
                     }
                     send(header, context, finishListener);
                     break;
@@ -68,16 +71,22 @@ public class Sender {
                     if (isResponse) {
                         send(header, context, finishListener);
                     } else {
+                        header.put(CommonSettings.J_FOLDER, message.getTargetFolder());
                         send(header, path, context, finishListener);
                     }
                     break;
 
                 case PULL_FILE: //from server to client
-                    if (!isResponse) break;
-                    fileEntry.put(CommonSettings.J_FILENAME, path.getFileName().toString());
-                    fileEntry.put(CommonSettings.J_SIZE, Files.size(path));
-                    header.put(CommonSettings.J_FILE, fileEntry);
-                    send(header, path, context, finishListener);
+                    if(isResponse){
+                        fileEntry.put(CommonSettings.J_FILENAME, path.getFileName().toString());
+                        fileEntry.put(CommonSettings.J_SIZE, Files.size(path));
+                        header.put(CommonSettings.J_FILE, fileEntry);
+                        send(header, path, context, finishListener);
+                    }else{
+                        fileEntry.put(CommonSettings.J_FILENAME, path.toString());
+                        header.put(CommonSettings.J_FILE, fileEntry);
+                        send(header, context, finishListener);
+                    }
                     break;
 
                 case PUSH_TREE:
@@ -85,6 +94,11 @@ public class Sender {
                         header.put(CommonSettings.J_TREE, JSONProcessor.listTree(path));
                     }
                 case PULL_TREE:
+                    send(header, context, finishListener);
+                    break;
+
+                case CREATE_DIR:
+                    header.put(CommonSettings.J_FOLDER, message.getTargetFolder());
                     send(header, context, finishListener);
                     break;
             }

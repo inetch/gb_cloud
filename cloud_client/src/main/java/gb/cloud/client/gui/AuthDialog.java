@@ -47,7 +47,6 @@ public class AuthDialog extends JDialog/* implements ActionListener*/ {
         }else{
             setTitle("Registration");
         }
-
         setVisible(true);
     }
 
@@ -66,6 +65,9 @@ public class AuthDialog extends JDialog/* implements ActionListener*/ {
         wrapPanel.add(userPanel);
         wrapPanel.add(passPanel);
         wrapPanel.add(buttonsPanel);
+
+        Dimension dimension = Toolkit.getDefaultToolkit().getScreenSize();
+        setLocation((int) ((dimension.getWidth() - WIDTH) / 2), (int) ((dimension.getHeight() - HEIGHT) / 2));
 
         add(wrapPanel);
 

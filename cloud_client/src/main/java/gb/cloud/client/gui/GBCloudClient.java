@@ -4,19 +4,25 @@ import gb.cloud.client.ClientSettings;
 import gb.cloud.client.network.IResponse;
 import gb.cloud.client.network.Network;
 import gb.cloud.common.CommonSettings;
+import gb.cloud.common.FileTreeElement;
+import gb.cloud.common.header.JSONProcessor;
 import gb.cloud.common.network.Command;
 import gb.cloud.common.network.CommandMessage;
-import gb.cloud.common.network.Sender;
 import gb.cloud.common.network.User;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
+import javax.swing.tree.TreeSelectionModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
+import java.io.File;
+
+import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
 
 public class GBCloudClient extends JFrame implements ActionListener, IResponse, Thread.UncaughtExceptionHandler {
@@ -35,10 +41,14 @@ public class GBCloudClient extends JFrame implements ActionListener, IResponse, 
     private static final JButton pullFileButton = new JButton("Pull file");
     private static final JButton createDirectoryButton = new JButton("New dir");
 
-    private static DefaultMutableTreeNode treeRootNode = new DefaultMutableTreeNode();
+    private static final JFileChooser fileChooser   = new JFileChooser();
+
+    private static final DefaultMutableTreeNode treeRootNode = new DefaultMutableTreeNode();
 
     private static final JTree dirTree = new JTree(treeRootNode);
     private User user;
+
+    private String startPath = System.getProperty("user.home");
 
     AuthDialog authDialog = new AuthDialog();
 
@@ -47,58 +57,13 @@ public class GBCloudClient extends JFrame implements ActionListener, IResponse, 
         //Object src = e.getSource();
     }
 
-    class FileTreeElement {
-        private final String name;
-        private final boolean isFolder;
-        private final long size;
-
-        private static final double KB = 1024;
-        private static final double MB = KB * 1024;
-        private static final double GB = MB * 1024;
-        private static final double TB = GB * 1024;
-
-        public FileTreeElement(String name, boolean isFolder, long size){
-            this.name = name;
-            this.isFolder = isFolder;
-            this.size = size;
-        }
-
-        public FileTreeElement(String name, boolean isFolder){
-            this.name = name;
-            this.isFolder = isFolder;
-            this.size = 0;
-        }
-
-        private String getSizeString(long size){
-            if(size > TB){
-                return String.format("%.2f TB", (double)size / TB);
-            }
-            if(size > GB){
-                return String.format("%.2f GB", (double)size / GB);
-            }
-            if(size > MB){
-                return String.format("%.2f MB", (double)size / MB);
-            }
-            if(size > KB){
-                return String.format("%.2f kB", (double)size / KB);
-            }
-            return Long.toString(size);
-        }
-
-        @Override
-        public String toString() {
-            if(isFolder){
-                return "(D) " + name;
-            }else{
-                return "(f) " + name + " [" + getSizeString(size) + "]";
-            }
-        }
-    }
-
     GBCloudClient(){
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setTitle(ClientSettings.WINDOW_TITLE);
         setSize(WIDTH, HEIGHT);
+
+        Dimension dimension = Toolkit.getDefaultToolkit().getScreenSize();
+        setLocation((int) ((dimension.getWidth() - WIDTH) / 2), (int) ((dimension.getHeight() - HEIGHT) / 2));
 
         topPanel.add(loginButton);
         topPanel.add(registerButton);
@@ -111,47 +76,92 @@ public class GBCloudClient extends JFrame implements ActionListener, IResponse, 
         wrapPanel.add(topPanel, BorderLayout.NORTH);
         wrapPanel.add(rightPanel, BorderLayout.EAST);
         wrapPanel.add(dirTree, BorderLayout.CENTER);
+        dirTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
 
-        loginButton.addActionListener( (ActionEvent e) ->  authDialog.showDialog(true, this));
-        registerButton.addActionListener( (ActionEvent e) ->  authDialog.showDialog(false, this));
-        pullTreeButton.addActionListener((ActionEvent e) -> {
-            CommandMessage message = new CommandMessage(Command.PULL_TREE);
-            try {
-                Sender.sendMessage(message, false, Network.getInstance().getCurrentChannel().pipeline().firstContext(), null);
-            } catch (IOException ioException) {
-                ioException.printStackTrace();
-            }
-        });
+        buttonListeners();
 
         authorized(false);
 
         add(wrapPanel);
-
-     /*   JSONObject header = new JSONObject();
-        header.put(CommonSettings.J_COMMAND, Command.PULL_TREE.toString());
-        Sender.sendHeader(header, Network.getInstance().getCurrentChannel(), future -> {
-            if (!future.isSuccess()) {
-                future.cause().printStackTrace();
-            }else{
-                System.out.println("Pull file");
-            }
-        });*/
 
         Connect();
 
         setVisible(true);
     }
 
+    private void buttonListeners(){
+        loginButton.addActionListener( (ActionEvent e) -> {
+            for(Component c: topPanel.getComponents()) c.setEnabled(false);
+            authDialog.showDialog(true, this);
+        });
+        registerButton.addActionListener( (ActionEvent e) -> {
+            for(Component c: topPanel.getComponents()) c.setEnabled(false);
+            authDialog.showDialog(false, this);
+        });
+        pullTreeButton.addActionListener((ActionEvent e) -> {
+            CommandMessage message = new CommandMessage(Command.PULL_TREE);
+            Network.simpleSend(message);
+        });
+        pushFileButton.addActionListener((ActionEvent e ) -> {
+            fileChooser.setCurrentDirectory(new File(startPath));
+            int result = fileChooser.showOpenDialog(this);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                startPath = fileChooser.getSelectedFile().toPath().getParent().toString();
+                CommandMessage message = new CommandMessage(Command.PUSH_FILE);
+                message.setFilePath(fileChooser.getSelectedFile().toPath());
+                message.setTargetFolder(getSelectedPath(false));
+                Network.simpleSend(message);
+            }
+        });
+        pullFileButton.addActionListener((ActionEvent e) -> {
+            if(dirTree.getSelectionCount() > 0) {
+                if(((FileTreeElement)((DefaultMutableTreeNode)dirTree.getLeadSelectionPath().getLastPathComponent()).getUserObject()).isFolder()){ //OMG
+                    showError("Please select a file, not a folder");
+                }else{
+                    CommandMessage message = new CommandMessage(Command.PULL_FILE);
+                    message.setFilePath(Paths.get(getSelectedPath(true)));
+
+                    Network.simpleSend(message);
+                }
+            }
+        });
+        createDirectoryButton.addActionListener((ActionEvent e) -> {
+            if(dirTree.getSelectionCount() > 0) {
+                String name = JOptionPane.showInputDialog(this, "New folder name:");
+                if (!name.isEmpty()) {
+                    CommandMessage message = new CommandMessage(Command.CREATE_DIR);
+                    message.setTargetFolder(getSelectedPath(false) + name);
+                    Network.simpleSend(message);
+                }
+            }
+        });
+    }
+
+    private String getSelectedPath(boolean withFile){
+        StringBuilder sbPath = new StringBuilder();
+        if(dirTree.getSelectionCount() > 0){
+            TreePath tPath = dirTree.getLeadSelectionPath();
+            for(Object o: tPath.getPath()){
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode)o;
+                FileTreeElement el = (FileTreeElement) node.getUserObject();
+                if(el.isFolder()){
+                    sbPath.append(el.getName());
+                    sbPath.append('/');
+                }else{
+                    if(withFile)sbPath.append(el.getName());
+                    break; //impossible to have a child under a file node
+                }
+            }
+        }
+        return sbPath.toString();
+    }
+
     private void authorized(boolean ok){
-        System.out.println("authorized");
         dirTree.setEnabled(ok);
         rightPanel.setEnabled(ok);
-        for(Component c: rightPanel.getComponents()){
-            c.setEnabled(ok);
-        }
-        for(Component c: topPanel.getComponents()){
-            c.setEnabled(!ok);
-        }
+        for(Component c: rightPanel.getComponents()) c.setEnabled(ok);
+        for(Component c: topPanel.getComponents()) c.setEnabled(!ok);
+
         if(ok){
             setTitle(ClientSettings.WINDOW_TITLE + " [" + user.getLogin() + "]");
         }else{
@@ -160,78 +170,37 @@ public class GBCloudClient extends JFrame implements ActionListener, IResponse, 
         repaint();
     }
 
-    private void parseJSONTree(JSONArray list, DefaultMutableTreeNode node){
-        if(list == null) return;
-        list.stream()
-                .sorted((o1, o2) -> {
-                    JSONObject json1 = (JSONObject)o1;
-                    JSONObject json2 = (JSONObject)o2;
-                    if(json1.containsKey(CommonSettings.J_FOLDER)){
-                        if(json2.containsKey(CommonSettings.J_FILE)){
-                            return -1;
-                        }else if(json2.containsKey(CommonSettings.J_FOLDER)){
-                            String s1 = (String)((JSONObject)json1.get(CommonSettings.J_FOLDER)).get(CommonSettings.J_FILENAME);
-                            String s2 = (String)((JSONObject)json2.get(CommonSettings.J_FOLDER)).get(CommonSettings.J_FILENAME);
-                            return s1.compareTo(s2);
-                        }else{
-                            return 0;
-                        }
-                    }else if (json1.containsKey(CommonSettings.J_FILE)){
-                        if(json2.containsKey(CommonSettings.J_FOLDER)){
-                            return 1;
-                        }else if(json2.containsKey(CommonSettings.J_FILE)){
-                            String s1 = (String)((JSONObject)json1.get(CommonSettings.J_FILE)).get(CommonSettings.J_FILENAME);
-                            String s2 = (String)((JSONObject)json2.get(CommonSettings.J_FILE)).get(CommonSettings.J_FILENAME);
-                            return s1.compareTo(s2);
-                        }else{
-                            return 0;
-                        }
-                    }
-                    return 0;
-                })
-                .forEach(o -> {
-                    JSONObject json = (JSONObject)o;
-                    if(json.containsKey(CommonSettings.J_FILE)){
-                        JSONObject file = (JSONObject) json.get(CommonSettings.J_FILE);
-                        node.add(new DefaultMutableTreeNode(new FileTreeElement((String)file.get(CommonSettings.J_FILENAME), false, (long)file.get(CommonSettings.J_SIZE))));
-                    }else if(json.containsKey(CommonSettings.J_FOLDER)){
-                        JSONObject file = (JSONObject) json.get(CommonSettings.J_FOLDER);
-                        DefaultMutableTreeNode folderNode = new DefaultMutableTreeNode(new FileTreeElement((String)file.get(CommonSettings.J_FILENAME), true));
-                        parseJSONTree((JSONArray) file.get(CommonSettings.J_LIST), folderNode);
-                        node.add(folderNode);
-                    }else{
-                        System.out.println("WTF?: " + json);
-                    }
-                });
+    public void showError(String error){
+        JOptionPane.showMessageDialog(this, error, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    public void showError(String error){
-        System.out.println(error);
+    private void showFileTree(CommandMessage message){
+        JSONObject rootFolder = (JSONObject)message.getFileTree().get(CommonSettings.J_FOLDER);
+        treeRootNode.removeAllChildren();
+        treeRootNode.setUserObject(new FileTreeElement((String)rootFolder.get(CommonSettings.J_FILENAME), true));
+        if(rootFolder.containsKey(CommonSettings.J_LIST)){
+            JSONArray list = (JSONArray) rootFolder.get(CommonSettings.J_LIST);
+            JSONProcessor.parseJSONTree(list, treeRootNode);
+            DefaultTreeModel model = (DefaultTreeModel)dirTree.getModel();
+            model.reload();
+            dirTree.expandPath(new TreePath(treeRootNode.getPath()));
+        }
     }
 
     @Override
     public void gotOk(CommandMessage message){
-        System.out.println("OK: " + message.getCommand().toString());
         if(message.getCommand() == Command.LOGIN || message.getCommand() == Command.REGISTER){
             user = message.getUser();
+            JOptionPane.showMessageDialog(this, "Welcome, " + user.getLogin(), "Welcome", JOptionPane.INFORMATION_MESSAGE);
             authorized(message.isOk());
         }
-        if(message.getCommand() == Command.PUSH_TREE){
-            JSONObject rootFolder = (JSONObject)message.getFileTree().get(CommonSettings.J_FOLDER);
-            String folderName = (String)rootFolder.get(CommonSettings.J_FILENAME);
-            //DefaultMutableTreeNode root
-            treeRootNode.setUserObject(new FileTreeElement((String)rootFolder.get(CommonSettings.J_FILENAME), true));
-            if(rootFolder.containsKey(CommonSettings.J_LIST)){
-                JSONArray list = (JSONArray) rootFolder.get(CommonSettings.J_LIST);
-                parseJSONTree(list, treeRootNode);
-                dirTree.repaint();
-            }
+        if(message.getFileTree() != null){
+            showFileTree(message);
         }
     }
 
     @Override
     public void gotError(CommandMessage message){
-        System.out.println("ERROR: " + message.getCommand().toString());
         authorized(message.isOk());
         showError(message.getErrorMessage());
     }
@@ -240,80 +209,6 @@ public class GBCloudClient extends JFrame implements ActionListener, IResponse, 
     public void networkError(){
         showError("Network error!");
     }
-
-     /*   Sender.sendFile(header, Paths.get("hw2.png"), Network.getInstance().getCurrentChannel(), future -> {
-            if (!future.isSuccess()) {
-                future.cause().printStackTrace();
-            }else{
-                System.out.println("Header sent!");
-            }
-            Network.getInstance().stop();
-        });*/
-
-        /*
-         JSONObject fileEntry = new JSONObject();
-        fileEntry.put(CommonSettings.J_FILENAME, path.getFileName().toString());
-        fileEntry.put(CommonSettings.J_SIZE, fileSize);
-        header.put(CommonSettings.J_FILE, fileEntry);
-        * */
-
-        /*
-        header.put(CommonSettings.J_COMMAND, Command.PULL_FILE.toString());
-
-        JSONObject fileEntry = new JSONObject();
-        fileEntry.put(CommonSettings.J_FILENAME, "send.me");
-        header.put(CommonSettings.J_FILE, fileEntry);
-
-        Sender.sendHeader(header, Network.getInstance().getCurrentChannel(), future -> {
-            if (!future.isSuccess()) {
-                future.cause().printStackTrace();
-            }else{
-                System.out.println("Pull file");
-            }
-        });*/
-
-
-
-     /*   header.put(CommonSettings.J_COMMAND, Command.LOGIN.toString());
-        header.put(CommonSettings.J_USERNAME, "user-figuser");
-        header.put(CommonSettings.J_PASSWORD, "password-figasword");
-
-        Sender.sendHeader(header, Network.getInstance().getCurrentChannel(), future -> {
-            if (!future.isSuccess()) {
-                future.cause().printStackTrace();
-            }else{
-                System.out.println("Header sent!");
-            }
-            Network.getInstance().stop();
-        });*/
-
-        /*obj.put("name", "foo");
-        obj.put("num", new Integer(100));
-        obj.put("balance", new Double(1000.21));
-        obj.put("is_vip", new Boolean(true));*/
-
-
-//        ProtoFileSender.sendFile(Paths.get("demo.txt"), Network.getInstance().getCurrentChannel(), future -> {
-//            if (!future.isSuccess()) {
-//                future.cause().printStackTrace();
-////                Network.getInstance().stop();
-//            }
-//            if (future.isSuccess()) {
-//                System.out.println("Файл успешно передан");
-////                Network.getInstance().stop();
-//            }
-//        });
-////        Thread.sleep(2000);
-//        ProtoFileSender.sendFile(Paths.get("demo1.txt"), Network.getInstance().getCurrentChannel(), future -> {
-//            if (!future.isSuccess()) {
-//                future.cause().printStackTrace();
-////                Network.getInstance().stop();
-//            }
-//            if (future.isSuccess()) {
-//                System.out.println("Файл успешно передан");
-////                Network.getInstance().stop();
-//            }
-//        });
 
     private void Connect(){
         CountDownLatch networkStarter = new CountDownLatch(1);
@@ -329,10 +224,7 @@ public class GBCloudClient extends JFrame implements ActionListener, IResponse, 
     @Override
     public void uncaughtException(Thread t, Throwable e) {
         e.printStackTrace();
-      /*  StackTraceElement[] ste = e.getStackTrace();
-        String msg = String.format("Exception in \"%s\": %s %s%n\t %s",
-                t.getName(), e.getClass().getCanonicalName(), e.getMessage(), ste[0]);
-        JOptionPane.showMessageDialog(this, msg, "Exception!", JOptionPane.ERROR_MESSAGE);*/
+        showError(e.getMessage());
     }
 
     public static void main(String[] args) {

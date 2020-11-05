@@ -11,4 +11,5 @@ public enum Command {
   , PULL_TREE
   , PUSH_TREE
   , HANDSHAKE
+  , CREATE_DIR
 }
