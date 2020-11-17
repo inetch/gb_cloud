@@ -33,10 +33,11 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     Map<ChannelHandlerContext, IClientConnection> connectionMap;
 
-    IStreamHeader streamHeader = new StreamHeader();
+    IStreamHeader streamHeader;
 
-    public ServerHandler(Map<ChannelHandlerContext, IClientConnection> connectionMap){
+    public ServerHandler(Map<ChannelHandlerContext, IClientConnection> connectionMap, IStreamHeader streamHeader){
         this.connectionMap = connectionMap;
+        this.streamHeader = streamHeader;
     }
 
     @Override
