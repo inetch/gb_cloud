@@ -7,7 +7,7 @@
     <groupId>gb.cloud</groupId>
     <artifactId>gb_cloud</artifactId>
     <packaging>pom</packaging>
-    <version>0.1</version>
+    <version>0.2</version>
     <modules>
         <module>cloud_server</module>
         <module>cloud_client</module>
