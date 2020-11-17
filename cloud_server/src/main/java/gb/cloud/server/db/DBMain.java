@@ -2,7 +2,6 @@ package gb.cloud.server.db;
 
 import gb.cloud.common.network.User;
 import gb.cloud.common.password.Password;
-import gb.cloud.server.Server;
 import gb.cloud.server.ServerSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

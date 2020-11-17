@@ -12,9 +12,10 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 import java.util.Hashtable;
+import java.util.Map;
 
 public class Server {
-    Hashtable<ChannelHandlerContext, ClientConnection> connectionMap = new Hashtable<>();
+    Map<ChannelHandlerContext, IClientConnection> connectionMap;
 
     public void run() throws Exception {
         EventLoopGroup mainGroup = new NioEventLoopGroup();

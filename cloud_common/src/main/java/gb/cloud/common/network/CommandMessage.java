@@ -8,7 +8,7 @@ import java.util.Objects;
 /*Class for the headers
 * */
 
-public class CommandMessage extends AbstractMessage {
+public class CommandMessage extends AbstractMessage implements ICommandMessage{
     private final Command command;
     private User user;
     private Path filePath;

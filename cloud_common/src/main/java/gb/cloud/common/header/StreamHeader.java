@@ -9,7 +9,7 @@ import java.io.UnsupportedEncodingException;
 
 /*Parses incoming bytes to JSON header
 * */
-public class StreamHeader {
+public class StreamHeader implements IStreamHeader{
     private int bracketCounter;
     private ByteArrayOutputStream byteStream;
     private boolean isFinished;

@@ -1,9 +1,11 @@
 package gb.cloud.server;
 
 import gb.cloud.common.header.HeaderProcessor;
+import gb.cloud.common.header.IStreamHeader;
 import gb.cloud.common.header.StreamHeader;
 import gb.cloud.common.network.Command;
 import gb.cloud.common.network.CommandMessage;
+import gb.cloud.common.network.ICommandMessage;
 import gb.cloud.common.network.Sender;
 import gb.cloud.server.db.DBMain;
 import io.netty.buffer.ByteBuf;
@@ -14,8 +16,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Hashtable;
+import java.util.Map;
 
 public class ServerHandler extends ChannelInboundHandlerAdapter {
     private enum State {
@@ -30,14 +31,11 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     private long receivedFileLength;
     private long fileLength;
 
-    /*thread-safe analog of the HashMap
-     * */
-    Hashtable<ChannelHandlerContext, ClientConnection> connectionMap;
+    Map<ChannelHandlerContext, IClientConnection> connectionMap;
 
+    IStreamHeader streamHeader = new StreamHeader();
 
-    StreamHeader streamHeader = new StreamHeader();
-
-    public ServerHandler(Hashtable<ChannelHandlerContext, ClientConnection> connectionMap){
+    public ServerHandler(Map<ChannelHandlerContext, IClientConnection> connectionMap){
         this.connectionMap = connectionMap;
     }
 
@@ -49,7 +47,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext context, Object message) throws Exception {
-        ClientConnection client;
+        IClientConnection client;
 
         if(connectionMap.containsKey(context)){
             client = connectionMap.get(context);
@@ -129,7 +127,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
                 if (commandMessage.getCommand() == Command.CREATE_DIR){
                     Path folder = Paths.get(ServerSettings.FILE_DIRECTORY + commandMessage.getTargetFolder());
-                    CommandMessage responseMessage = new CommandMessage(Command.CREATE_DIR);
+                    ICommandMessage responseMessage = new CommandMessage(Command.CREATE_DIR);
                     responseMessage.setTargetFolder(commandMessage.getTargetFolder());
                     if(Files.exists(folder)){
                         responseMessage.setResult(false);
