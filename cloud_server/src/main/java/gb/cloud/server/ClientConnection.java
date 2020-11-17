@@ -1,7 +1,6 @@
 package gb.cloud.server;
 
 import gb.cloud.common.network.User;
-import gb.cloud.server.db.DBMain;
 import gb.cloud.server.db.IDBMain;
 
 import java.io.IOException;

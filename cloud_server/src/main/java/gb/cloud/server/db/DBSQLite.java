@@ -8,10 +8,9 @@ import org.apache.logging.log4j.Logger;
 
 import java.sql.*;
 
-public class DBMain implements IDBMain{
+public class DBSQLite implements IDBMain{
     private Connection connection;
-    private String dbFilename;
-    private final Logger logger = LogManager.getLogger(DBMain.class);
+    private final Logger logger = LogManager.getLogger(DBSQLite.class);
 
     private String className;
     private String connectionString;
@@ -25,13 +24,7 @@ public class DBMain implements IDBMain{
     private static final String stmtGetUserHash = "select hash from usr_user_vw where login = ?";
     private static final String stmtCreateUser = "insert into usr_user_vw (login, hash) values (?, ?)";
 
-    public DBMain(String dbFilename){
-        this.dbFilename = dbFilename;
-        this.className = "org.sqlite.JDBC";
-        this.connectionString = "jdbc:sqlite:" + dbFilename;
-    }
-
-    public DBMain(String connectionString, String className){
+    public DBSQLite(String connectionString, String className){
         this.connectionString = connectionString;
         this.className = className;
     }
@@ -84,7 +77,7 @@ public class DBMain implements IDBMain{
             stmt.setString(2, Password.getHash(user.getPassword()));
             stmt.executeUpdate();
         }catch (SQLException sqle){
-            LogManager.getLogger(DBMain.class).fatal(sqle);
+            LogManager.getLogger(DBSQLite.class).fatal(sqle);
         }
     }
 
