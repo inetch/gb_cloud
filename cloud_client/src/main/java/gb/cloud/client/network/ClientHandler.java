@@ -4,6 +4,7 @@ import gb.cloud.client.ClientSettings;
 import gb.cloud.common.header.HeaderProcessor;
 import gb.cloud.common.header.StreamHeader;
 import gb.cloud.common.network.CommandMessage;
+import gb.cloud.common.network.ICommandMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -28,13 +29,13 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     private final IResponse response;
 
     private final StreamHeader streamHeader = new StreamHeader();
-    private CommandMessage commandMessage = null;
+    private ICommandMessage commandMessage = null;
 
     public ClientHandler(IResponse response){
         this.response = response;
     }
 
-    private void gotResponse(CommandMessage message){
+    private void gotResponse(ICommandMessage message){
         if(message.isOk()){
             response.gotOk(message);
         }else{

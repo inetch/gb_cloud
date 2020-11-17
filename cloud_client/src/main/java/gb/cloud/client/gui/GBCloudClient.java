@@ -8,6 +8,7 @@ import gb.cloud.common.FileTreeElement;
 import gb.cloud.common.header.JSONProcessor;
 import gb.cloud.common.network.Command;
 import gb.cloud.common.network.CommandMessage;
+import gb.cloud.common.network.ICommandMessage;
 import gb.cloud.common.network.User;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -174,7 +175,7 @@ public class GBCloudClient extends JFrame implements ActionListener, IResponse, 
         JOptionPane.showMessageDialog(this, error, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    private void showFileTree(CommandMessage message){
+    private void showFileTree(ICommandMessage message){
         JSONObject rootFolder = (JSONObject)message.getFileTree().get(CommonSettings.J_FOLDER);
         treeRootNode.removeAllChildren();
         treeRootNode.setUserObject(new FileTreeElement((String)rootFolder.get(CommonSettings.J_FILENAME), true));
@@ -188,7 +189,7 @@ public class GBCloudClient extends JFrame implements ActionListener, IResponse, 
     }
 
     @Override
-    public void gotOk(CommandMessage message){
+    public void gotOk(ICommandMessage message){
         if(message.getCommand() == Command.LOGIN || message.getCommand() == Command.REGISTER){
             user = message.getUser();
             JOptionPane.showMessageDialog(this, "Welcome, " + user.getLogin(), "Welcome", JOptionPane.INFORMATION_MESSAGE);
@@ -200,7 +201,7 @@ public class GBCloudClient extends JFrame implements ActionListener, IResponse, 
     }
 
     @Override
-    public void gotError(CommandMessage message){
+    public void gotError(ICommandMessage message){
         authorized(message.isOk());
         showError(message.getErrorMessage());
     }

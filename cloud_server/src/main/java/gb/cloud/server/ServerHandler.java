@@ -75,7 +75,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
             if(currentState == State.HEADER_GOT){
                 System.out.println("going to process header");
-                CommandMessage commandMessage = HeaderProcessor.processHeader(streamHeader.getJson(), ServerSettings.FILE_DIRECTORY);
+                ICommandMessage commandMessage = HeaderProcessor.processHeader(streamHeader.getJson(), ServerSettings.FILE_DIRECTORY);
                 System.out.println(commandMessage.getCommand());
 
                 if (commandMessage.getCommand() == Command.LOGIN || commandMessage.getCommand() == Command.REGISTER){

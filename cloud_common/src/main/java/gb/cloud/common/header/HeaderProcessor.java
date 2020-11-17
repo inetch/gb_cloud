@@ -3,6 +3,7 @@ package gb.cloud.common.header;
 import gb.cloud.common.CommonSettings;
 import gb.cloud.common.network.Command;
 import gb.cloud.common.network.CommandMessage;
+import gb.cloud.common.network.ICommandMessage;
 import gb.cloud.common.network.User;
 import org.json.simple.JSONObject;
 
@@ -11,12 +12,12 @@ import java.nio.file.Paths;
 /*Deserialization from JSON to CommandMessage
 * */
 public class HeaderProcessor {
-    public static CommandMessage processHeader(JSONObject header, String rootDirectory) {
+    public static ICommandMessage processHeader(JSONObject header, String rootDirectory) {
         System.out.println("Process header");
         System.out.println(header);
 
         String command = (String)header.get(CommonSettings.J_COMMAND);
-        CommandMessage cMessage = new CommandMessage(Command.valueOf(command));
+        ICommandMessage cMessage = new CommandMessage(Command.valueOf(command));
         if(header.containsKey(CommonSettings.J_RESULT)){
             cMessage.setResult((boolean)header.get(CommonSettings.J_RESULT));
         }else{
