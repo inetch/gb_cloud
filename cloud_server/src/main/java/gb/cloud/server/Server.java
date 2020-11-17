@@ -1,8 +1,7 @@
 package gb.cloud.server;
 
 import gb.cloud.common.CommonSettings;
-import gb.cloud.server.db.DBSQLite;
-import gb.cloud.server.db.IDBMain;
+
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 
@@ -14,22 +13,15 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-
 public class Server {
     private IConnectionManager connections;
-    private IDBMain db;
 
     public void run() throws Exception {
         EventLoopGroup mainGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
 
         ApplicationContext context = new ClassPathXmlApplicationContext("context.xml");
-        /*Camera camera = context.getBean("camera", Camera.class);
-        camera.doPhotograph();*/
-
-        //db = new DBSQLite("org.sqlite.JDBC", "jdbc:sqlite:" + ServerSettings.DB_FILE);
-        db = context.getBean("dbmain", DBSQLite.class);
-        connections = new ConnectionManager(db);
+        connections = context.getBean("connections", ConnectionManager.class);
 
         try {
             ServerBootstrap b = new ServerBootstrap();
