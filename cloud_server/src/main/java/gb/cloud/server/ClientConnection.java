@@ -2,6 +2,7 @@ package gb.cloud.server;
 
 import gb.cloud.common.network.User;
 import gb.cloud.server.db.DBMain;
+import gb.cloud.server.db.IDBMain;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,9 +25,9 @@ public class ClientConnection implements IClientConnection{
         this.userPath = Paths.get(userPathString);
     }
 
-    private final DBMain db;
+    private final IDBMain db;
 
-    public ClientConnection(DBMain db){
+    public ClientConnection(IDBMain db){
         this.isAuthorized = false;
         this.db = db;
     }

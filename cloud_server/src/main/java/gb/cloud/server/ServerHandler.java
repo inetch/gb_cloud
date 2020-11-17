@@ -8,6 +8,7 @@ import gb.cloud.common.network.CommandMessage;
 import gb.cloud.common.network.ICommandMessage;
 import gb.cloud.common.network.Sender;
 import gb.cloud.server.db.DBMain;
+import gb.cloud.server.db.IDBMain;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -16,7 +17,6 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
 
 public class ServerHandler extends ChannelInboundHandlerAdapter {
     private enum State {
@@ -31,13 +31,12 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     private long receivedFileLength;
     private long fileLength;
 
-    Map<ChannelHandlerContext, IClientConnection> connectionMap;
+    IConnectionManager manager;
 
-    IStreamHeader streamHeader;
+    IStreamHeader streamHeader = new StreamHeader(); //can not be a singleton, because this is utility class, and must be created for every connection
 
-    public ServerHandler(Map<ChannelHandlerContext, IClientConnection> connectionMap, IStreamHeader streamHeader){
-        this.connectionMap = connectionMap;
-        this.streamHeader = streamHeader;
+    public ServerHandler(IConnectionManager manager){
+        this.manager = manager;
     }
 
     @Override
@@ -48,14 +47,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext context, Object message) throws Exception {
-        IClientConnection client;
-
-        if(connectionMap.containsKey(context)){
-            client = connectionMap.get(context);
-        }else{
-            client = new ClientConnection(new DBMain(ServerSettings.DB_FILE));
-            connectionMap.put(context, client);
-        }
+        IClientConnection client = manager.getConnection(context);
 
         ByteBuf buf = (ByteBuf)message;
 

@@ -8,10 +8,15 @@ import org.apache.logging.log4j.Logger;
 
 import java.sql.*;
 
-public class DBMain {
+public class DBMain implements IDBMain{
     private Connection connection;
     private String dbFilename;
     private final Logger logger = LogManager.getLogger(DBMain.class);
+
+    private String className;
+    private String connectionString;
+
+    private boolean isConnected = false;
 
     private static final String stmtUnsuccessfulRegisterLog = "insert into usr_log_vw (action_rowid, login, hash) values (" + ServerSettings.DB_REGISTER_UNSUCCESSFUL + ", ?, ?)";
     private static final String stmtUnsuccessfulLoginLog = "insert into usr_log_vw (action_rowid, login, hash) values (" + ServerSettings.DB_LOGIN_UNSUCCESSFUL + ", ?, ?)";
@@ -22,26 +27,56 @@ public class DBMain {
 
     public DBMain(String dbFilename){
         this.dbFilename = dbFilename;
+        this.className = "org.sqlite.JDBC";
+        this.connectionString = "jdbc:sqlite:" + dbFilename;
     }
 
-    public void connect() throws ClassNotFoundException {
-        Class.forName("org.sqlite.JDBC");
+    public DBMain(String connectionString, String className){
+        this.connectionString = connectionString;
+        this.className = className;
+    }
+
+    public void setConnectionString(String connectionString){
+        this.connectionString = connectionString;
+        reconnect();
+    }
+
+    private void setClassName(String className){
+        this.className = className;
+        reconnect();
+    }
+
+    private void reconnect() {
+        if (isConnected) {
+            disconnect();
+            try {
+                connect();
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void connect() throws ClassNotFoundException {
+        Class.forName(this.className);
         try {
-            connection = DriverManager.getConnection("jdbc:sqlite:" + dbFilename);
+            connection = DriverManager.getConnection(this.connectionString);
+            isConnected = true;
         }catch (SQLException sqle){
             logger.fatal(sqle);
         }
     }
 
-    public void disconnect(){
+    private void disconnect(){
         try {
+            isConnected = false;
             connection.close();
         }catch (SQLException throwable){
             throwable.printStackTrace();
         }
     }
 
-    public static void userLog(Connection conn, User user, String logStatement){
+    private void userLog(Connection conn, User user, String logStatement){
         PreparedStatement stmt;
         try{
             stmt = conn.prepareStatement(logStatement);
@@ -77,6 +112,8 @@ public class DBMain {
         }catch (ClassNotFoundException e){
             logger.fatal(e);
             return false;
+        }finally {
+            disconnect();
         }
         return true;
     }
