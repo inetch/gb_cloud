@@ -1,11 +1,12 @@
 package gb.cloud.server;
 
 import gb.cloud.common.header.HeaderProcessor;
+import gb.cloud.common.header.IStreamHeader;
 import gb.cloud.common.header.StreamHeader;
 import gb.cloud.common.network.Command;
 import gb.cloud.common.network.CommandMessage;
+import gb.cloud.common.network.ICommandMessage;
 import gb.cloud.common.network.Sender;
-import gb.cloud.server.db.DBMain;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -14,8 +15,6 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Hashtable;
 
 public class ServerHandler extends ChannelInboundHandlerAdapter {
     private enum State {
@@ -30,15 +29,12 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     private long receivedFileLength;
     private long fileLength;
 
-    /*thread-safe analog of the HashMap
-     * */
-    Hashtable<ChannelHandlerContext, ClientConnection> connectionMap;
+    IConnectionManager manager;
 
+    IStreamHeader streamHeader = new StreamHeader(); //can not be a singleton, because this is utility class, and must be created for every connection
 
-    StreamHeader streamHeader = new StreamHeader();
-
-    public ServerHandler(Hashtable<ChannelHandlerContext, ClientConnection> connectionMap){
-        this.connectionMap = connectionMap;
+    public ServerHandler(IConnectionManager manager){
+        this.manager = manager;
     }
 
     @Override
@@ -49,14 +45,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext context, Object message) throws Exception {
-        ClientConnection client;
-
-        if(connectionMap.containsKey(context)){
-            client = connectionMap.get(context);
-        }else{
-            client = new ClientConnection(new DBMain(ServerSettings.DB_FILE));
-            connectionMap.put(context, client);
-        }
+        IClientConnection client = manager.getConnection(context);
 
         ByteBuf buf = (ByteBuf)message;
 
@@ -77,7 +66,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
             if(currentState == State.HEADER_GOT){
                 System.out.println("going to process header");
-                CommandMessage commandMessage = HeaderProcessor.processHeader(streamHeader.getJson(), ServerSettings.FILE_DIRECTORY);
+                ICommandMessage commandMessage = HeaderProcessor.processHeader(streamHeader.getJson(), ServerSettings.FILE_DIRECTORY);
                 System.out.println(commandMessage.getCommand());
 
                 if (commandMessage.getCommand() == Command.LOGIN || commandMessage.getCommand() == Command.REGISTER){
@@ -129,7 +118,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
                 if (commandMessage.getCommand() == Command.CREATE_DIR){
                     Path folder = Paths.get(ServerSettings.FILE_DIRECTORY + commandMessage.getTargetFolder());
-                    CommandMessage responseMessage = new CommandMessage(Command.CREATE_DIR);
+                    ICommandMessage responseMessage = new CommandMessage(Command.CREATE_DIR);
                     responseMessage.setTargetFolder(commandMessage.getTargetFolder());
                     if(Files.exists(folder)){
                         responseMessage.setResult(false);

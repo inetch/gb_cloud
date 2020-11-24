@@ -39,7 +39,7 @@ public class Sender {
         }
     }
 
-    public static void sendMessage(CommandMessage message, boolean isResponse, ChannelHandlerContext context, ChannelFutureListener finishListener) throws IOException {
+    public static void sendMessage(ICommandMessage message, boolean isResponse, ChannelHandlerContext context, ChannelFutureListener finishListener) throws IOException {
         JSONObject header = new JSONObject();
         JSONObject fileEntry = new JSONObject();
         Path path = message.getFilePath();
